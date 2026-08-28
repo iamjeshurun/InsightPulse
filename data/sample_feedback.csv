@@ -1,0 +1,13 @@
+id,text,source,product,created_at,sentiment,intent,urgency
+r001,Setup took five minutes and the dashboard is wonderfully clear.,review,InsightPulse,2026-07-01,positive,praise,low
+r002,The search page freezes whenever I filter by date.,support_ticket,InsightPulse,2026-07-02,negative,complaint,medium
+r003,Please add scheduled PDF reports for executives.,survey,InsightPulse,2026-07-03,neutral,feature_request,low
+r004,I was charged twice; contact me at alex@example.com.,support_ticket,Billing,2026-07-04,negative,complaint,high
+r005,Support solved ticket ABC-12345 quickly and professionally.,review,Support,2026-07-05,positive,praise,low
+r006,The latest update is fine but I have not noticed major changes.,review,InsightPulse,2026-07-06,neutral,other,low
+r007,If export breaks again we will cancel our subscription.,support_ticket,Exports,2026-07-07,negative,churn_risk,high
+r008,CSV exports are fast even with our largest report.,review,Exports,2026-07-08,positive,praise,low
+r009,Could you support saved filters for each workspace?,survey,InsightPulse,2026-07-09,neutral,feature_request,low
+r010,Call +1 (212) 555-0199 because account CUST-99881 is locked.,support_ticket,Accounts,2026-07-10,negative,complaint,high
+r011,Setup took five minutes and the dashboard is wonderfully clear.,review,InsightPulse,2026-07-11,positive,praise,low
+,x,unknown,,not-a-date,excited,unknown,urgent
