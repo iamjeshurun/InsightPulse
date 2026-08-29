@@ -8,7 +8,7 @@ insights while demonstrating an end-to-end applied machine-learning workflow.
 
 1. **Data foundation (complete):** validate, normalize, redact, deduplicate,
    split, and document customer-feedback data.
-2. **Modeling:** establish classical baselines, fine-tune a transformer, and
+2. **Modeling (complete):** establish classical baselines, fine-tune a transformer, and
    publish reproducible evaluation and error analysis.
 3. **Inference platform:** expose versioned batch and real-time predictions via
    FastAPI with persistence, jobs, caching, and tests.
@@ -30,6 +30,32 @@ python -m insightpulse_data.cli \
 
 python -m unittest discover -s tests -v
 ```
+
+## Part 2 quick start
+
+Install the project and run the reproducible TF-IDF/logistic-regression baseline:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+insightpulse-data \
+  --input data/sample_feedback.csv \
+  --output-dir artifacts/processed \
+  --dataset-name sample-feedback \
+  --dataset-version 1.0.0 \
+  --train-ratio 0.6 \
+  --validation-ratio 0.2
+
+insightpulse-baseline \
+  --data-dir artifacts/processed \
+  --output-dir artifacts/models/baseline
+```
+
+The model runner produces a serialized model, machine-readable evaluation,
+predictions, run configuration, latency benchmark, behavioral error slices,
+and a model card. See [docs/part-2-modeling.md](docs/part-2-modeling.md).
 
 The pipeline writes:
 

@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .coverage
+*.egg-info/
 artifacts/
 data/raw/
 .env
