@@ -10,7 +10,7 @@ insights while demonstrating an end-to-end applied machine-learning workflow.
    split, and document customer-feedback data.
 2. **Modeling (complete):** establish classical baselines, fine-tune a transformer, and
    publish reproducible evaluation and error analysis.
-3. **Inference platform:** expose versioned batch and real-time predictions via
+3. **Inference platform (complete):** expose versioned batch and real-time predictions via
    FastAPI with persistence, jobs, caching, and tests.
 4. **Decision dashboard:** surface trends, aspects, alerts, evidence, and a
    human-feedback workflow.
@@ -56,6 +56,18 @@ insightpulse-baseline \
 The model runner produces a serialized model, machine-readable evaluation,
 predictions, run configuration, latency benchmark, behavioral error slices,
 and a model card. See [docs/part-2-modeling.md](docs/part-2-modeling.md).
+
+## Part 3 quick start
+
+```bash
+pip install -e '.[test]'
+insightpulse-api
+```
+
+The versioned FastAPI service provides typed real-time and batch inference,
+background jobs, SQLite persistence, analytics, human feedback, caching, rate
+limiting, request tracing, and generated OpenAPI documentation. See
+[docs/part-3-inference-platform.md](docs/part-3-inference-platform.md).
 
 The pipeline writes:
 
