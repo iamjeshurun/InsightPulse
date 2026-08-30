@@ -15,6 +15,7 @@ from time import monotonic
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .cache import TTLCache
 from .model_service import ModelService
@@ -136,5 +137,9 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         if not repository.get_analysis(payload.analysis_id):
             raise HTTPException(404, "analysis not found")
         return repository.save_feedback(payload.analysis_id, payload.task, payload.corrected_label, payload.note)
+
+    frontend = Path(os.getenv("INSIGHTPULSE_FRONTEND_DIST", "frontend/dist"))
+    if frontend.exists():
+        app.mount("/", StaticFiles(directory=frontend, html=True), name="dashboard")
 
     return app
