@@ -12,7 +12,7 @@ insights while demonstrating an end-to-end applied machine-learning workflow.
    publish reproducible evaluation and error analysis.
 3. **Inference platform (complete):** expose versioned batch and real-time predictions via
    FastAPI with persistence, jobs, caching, and tests.
-4. **Decision dashboard:** surface trends, aspects, alerts, evidence, and a
+4. **Decision dashboard (complete):** surface trends, aspects, alerts, evidence, and a
    human-feedback workflow.
 5. **Operations:** containerize, deploy, monitor drift and service health, and
    automate continuous evaluation.
@@ -68,6 +68,18 @@ The versioned FastAPI service provides typed real-time and batch inference,
 background jobs, SQLite persistence, analytics, human feedback, caching, rate
 limiting, request tracing, and generated OpenAPI documentation. See
 [docs/part-3-inference-platform.md](docs/part-3-inference-platform.md).
+
+## Part 4 quick start
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The React dashboard includes operational KPIs, distributions, live inference,
+CSV batch analysis, evidence filters, low-confidence review, human corrections,
+health state, and CSV export. See [docs/part-4-dashboard.md](docs/part-4-dashboard.md).
 
 The pipeline writes:
 

@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -49,6 +50,16 @@ class ApiTests(unittest.TestCase):
         current = self.client.get(f"/api/v1/jobs/{job['id']}").json()
         self.assertEqual(current["status"], "completed")
         self.assertEqual(current["completed"], 2)
+
+    def test_compiled_dashboard_can_be_served(self):
+        frontend = Path(self.temporary.name) / "frontend"
+        frontend.mkdir()
+        (frontend / "index.html").write_text("<h1>InsightPulse</h1>", encoding="utf-8")
+        with patch.dict("os.environ", {"INSIGHTPULSE_FRONTEND_DIST": str(frontend)}):
+            with TestClient(create_app(Path(self.temporary.name) / "dashboard.db")) as client:
+                response = client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("InsightPulse", response.text)
 
 
 if __name__ == "__main__":
