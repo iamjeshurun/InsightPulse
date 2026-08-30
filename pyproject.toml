@@ -4,15 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "insightpulse-data"
-version = "0.2.0"
+version = "0.3.0"
 description = "Reproducible data foundation for a voice-of-customer intelligence platform"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "InsightPulse Contributors" }]
 dependencies = [
+  "fastapi>=0.116,<1",
   "joblib>=1.4,<2",
+  "pydantic>=2.9,<3",
+  "python-multipart>=0.0.12,<1",
   "scikit-learn>=1.5,<2",
+  "uvicorn[standard]>=0.35,<1",
 ]
 
 [project.optional-dependencies]
@@ -22,11 +26,13 @@ transformer = [
   "torch>=2.3,<3",
   "transformers>=4.45,<6",
 ]
+test = ["httpx>=0.28,<1"]
 
 [project.scripts]
 insightpulse-data = "insightpulse_data.cli:main"
 insightpulse-baseline = "insightpulse_modeling.cli:main"
 insightpulse-transformer = "insightpulse_modeling.transformer:main"
+insightpulse-api = "insightpulse_api.main:run"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

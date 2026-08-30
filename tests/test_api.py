@@ -1,0 +1,55 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from insightpulse_api.app import create_app
+
+
+class ApiTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.client = TestClient(create_app(Path(self.temporary.name) / "test.db"))
+
+    def tearDown(self):
+        self.client.close()
+        self.temporary.cleanup()
+
+    def test_health_and_validation(self):
+        self.assertEqual(self.client.get("/health").status_code, 200)
+        self.assertEqual(self.client.post("/api/v1/analyze", json={"text": "x"}).status_code, 422)
+
+    def test_analysis_persistence_analytics_and_feedback(self):
+        response = self.client.post(
+            "/api/v1/analyze",
+            json={"text": "Excellent support solved my problem fast.", "source": "review", "product": "Support"},
+        )
+        self.assertEqual(response.status_code, 201)
+        analysis = response.json()
+        self.assertEqual(analysis["predictions"]["sentiment"]["label"], "positive")
+        self.assertEqual(self.client.get(f"/api/v1/analyses/{analysis['id']}").status_code, 200)
+        summary = self.client.get("/api/v1/analytics/summary").json()
+        self.assertEqual(summary["total"], 1)
+        feedback = self.client.post(
+            "/api/v1/feedback",
+            json={"analysis_id": analysis["id"], "task": "sentiment", "corrected_label": "neutral"},
+        )
+        self.assertEqual(feedback.status_code, 201)
+
+    def test_batch_and_background_job(self):
+        records = {
+            "records": [
+                {"text": "The export is broken again.", "product": "Exports"},
+                {"text": "Please add scheduled reports.", "product": "Reports", "source": "survey"},
+            ]
+        }
+        self.assertEqual(len(self.client.post("/api/v1/analyze/batch", json=records).json()["analyses"]), 2)
+        job = self.client.post("/api/v1/jobs", json=records).json()
+        current = self.client.get(f"/api/v1/jobs/{job['id']}").json()
+        self.assertEqual(current["status"], "completed")
+        self.assertEqual(current["completed"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
