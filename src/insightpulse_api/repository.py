@@ -139,3 +139,10 @@ class Repository:
                 result["low_confidence"] += 1
         result["average_confidence"] = sum(confidences) / len(confidences) if confidences else 0.0
         return result
+
+    def ping(self) -> bool:
+        try:
+            with self._connection() as connection:
+                return connection.execute("SELECT 1").fetchone()[0] == 1
+        except sqlite3.Error:
+            return False

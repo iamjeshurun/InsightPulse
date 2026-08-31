@@ -14,7 +14,7 @@ from time import monotonic
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from .cache import TTLCache
@@ -24,6 +24,7 @@ from .schemas import (
     AnalysisResponse, AnalyticsSummary, AnalyzeRequest, BatchAnalysisResponse,
     BatchAnalyzeRequest, FeedbackRequest, FeedbackResponse, HealthResponse, JobResponse,
 )
+from insightpulse_monitoring.metrics import MetricsRegistry
 
 API_VERSION = "1.0.0"
 
@@ -37,6 +38,7 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
     repository = Repository(database_path or Path(os.getenv("INSIGHTPULSE_DB", "artifacts/insightpulse.db")))
     model = ModelService(model_path)
     summary_cache = TTLCache(5)
+    metrics = MetricsRegistry()
     request_windows: dict[str, deque[float]] = defaultdict(deque)
     rate_lock = threading.Lock()
     app = FastAPI(title="InsightPulse API", version=API_VERSION, docs_url="/docs")
@@ -63,12 +65,17 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
             window.append(now)
         started = monotonic()
         response = await call_next(request)
+        metrics.observe_request(request.method, request.url.path, response.status_code, monotonic() - started)
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = f"{(monotonic() - started) * 1000:.2f}"
         return response
 
     def analyze_one(payload: AnalyzeRequest) -> dict:
-        prediction = model.predict([payload.text])[0]
+        primary, shadow = model.predict_with_shadow([payload.text])
+        prediction = primary[0]
+        metrics.observe_predictions(prediction)
+        if shadow:
+            metrics.observe_shadow(prediction, shadow[0])
         record = {
             "id": str(uuid.uuid4()), "text": payload.text, "source": payload.source,
             "product": payload.product, "created_at": datetime.now(UTC).isoformat(),
@@ -81,6 +88,16 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
     @app.get("/health", response_model=HealthResponse, tags=["operations"])
     def health() -> dict:
         return {"status": "ok", "api_version": API_VERSION, "model_version": model.version}
+
+    @app.get("/ready", tags=["operations"])
+    def ready() -> dict:
+        if not repository.ping():
+            raise HTTPException(503, "database unavailable")
+        return {"status": "ready", "model_version": model.version}
+
+    @app.get("/metrics", response_class=PlainTextResponse, include_in_schema=False)
+    def prometheus_metrics() -> str:
+        return metrics.render()
 
     @app.post("/api/v1/analyze", response_model=AnalysisResponse, status_code=201, tags=["inference"])
     def analyze(payload: AnalyzeRequest) -> dict:

@@ -1,0 +1,25 @@
+name: Continuous evaluation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 1"
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -e .
+      - name: Verify drift evaluation pipeline
+        run: |
+          insightpulse-data --input data/sample_feedback.csv --output-dir artifacts/processed --dataset-name ci-smoke --dataset-version 1.0.0 --train-ratio 0.6 --validation-ratio 0.2
+          insightpulse-drift --reference artifacts/processed/train.jsonl --current artifacts/processed/test.jsonl --output artifacts/reports/drift.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-smoke-report
+          path: artifacts/reports/drift.json
+      - name: Production artifact reminder
+        run: echo "A deployment must securely supply redacted current data and feedback.db; see docs/runbook.md."

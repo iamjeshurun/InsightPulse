@@ -19,6 +19,8 @@ class ApiTests(unittest.TestCase):
 
     def test_health_and_validation(self):
         self.assertEqual(self.client.get("/health").status_code, 200)
+        self.assertEqual(self.client.get("/ready").status_code, 200)
+        self.assertIn("insightpulse_http_requests_total", self.client.get("/metrics").text)
         self.assertEqual(self.client.post("/api/v1/analyze", json={"text": "x"}).status_code, 422)
 
     def test_analysis_persistence_analytics_and_feedback(self):

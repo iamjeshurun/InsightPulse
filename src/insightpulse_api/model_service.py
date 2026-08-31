@@ -18,6 +18,8 @@ class ModelService:
         configured = model_path or (Path(os.environ["INSIGHTPULSE_MODEL_PATH"]) if os.getenv("INSIGHTPULSE_MODEL_PATH") else None)
         self.model = joblib.load(configured) if configured and configured.exists() else None
         self.version = f"baseline:{configured.name}" if self.model else "demo-lexicon-1"
+        shadow_path = Path(os.environ["INSIGHTPULSE_SHADOW_MODEL_PATH"]) if os.getenv("INSIGHTPULSE_SHADOW_MODEL_PATH") else None
+        self.shadow_model = joblib.load(shadow_path) if shadow_path and shadow_path.exists() else None
 
     @staticmethod
     def _distribution(label: str, labels: list[str], confidence: float) -> dict[str, float]:
@@ -69,3 +71,8 @@ class ModelService:
         if self.model:
             return self.model.predict(texts)
         return [self._demo_predict(text) for text in texts]
+
+    def predict_with_shadow(self, texts: list[str]) -> tuple[list[dict], list[dict] | None]:
+        primary = self.predict(texts)
+        shadow = self.shadow_model.predict(texts) if self.shadow_model else None
+        return primary, shadow
