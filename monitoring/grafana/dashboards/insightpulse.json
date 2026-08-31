@@ -1,0 +1,13 @@
+{
+  "annotations": {"list": []}, "editable": true,
+  "panels": [
+    {"type":"stat","title":"Requests (5m)","gridPos":{"h":8,"w":6,"x":0,"y":0},"targets":[{"expr":"sum(increase(insightpulse_http_requests_total[5m]))"}]},
+    {"type":"stat","title":"Error rate","gridPos":{"h":8,"w":6,"x":6,"y":0},"targets":[{"expr":"sum(rate(insightpulse_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(insightpulse_http_requests_total[5m])), 0.001)"}]},
+    {"type":"timeseries","title":"Prediction volume","gridPos":{"h":8,"w":12,"x":12,"y":0},"targets":[{"expr":"sum by (task, label) (rate(insightpulse_predictions_total[5m]))","legendFormat":"{{task}} · {{label}}"}]},
+    {"type":"timeseries","title":"Shadow disagreement ratio","gridPos":{"h":8,"w":12,"x":0,"y":8},"targets":[{"expr":"sum by (task) (rate(insightpulse_shadow_disagreements_total[5m])) / clamp_min(sum by (task) (rate(insightpulse_shadow_comparisons_total[5m])), 0.001)","legendFormat":"{{task}}"}]},
+    {"type":"timeseries","title":"Mean request latency","gridPos":{"h":8,"w":12,"x":12,"y":8},"targets":[{"expr":"sum by (route) (rate(insightpulse_http_request_duration_seconds_sum[5m])) / clamp_min(sum by (route) (rate(insightpulse_http_requests_total[5m])), 0.001)","legendFormat":"{{route}}"}]}
+  ],
+  "schemaVersion": 41, "tags": ["ml", "operations"], "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"}, "title": "InsightPulse Operations",
+  "uid": "insightpulse-ops", "version": 1
+}

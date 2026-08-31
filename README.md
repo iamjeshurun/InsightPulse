@@ -14,7 +14,7 @@ insights while demonstrating an end-to-end applied machine-learning workflow.
    FastAPI with persistence, jobs, caching, and tests.
 4. **Decision dashboard (complete):** surface trends, aspects, alerts, evidence, and a
    human-feedback workflow.
-5. **Operations:** containerize, deploy, monitor drift and service health, and
+5. **Operations (complete):** containerize, deploy, monitor drift and service health, and
    automate continuous evaluation.
 
 ## Part 1 quick start
@@ -80,6 +80,19 @@ npm run dev
 The React dashboard includes operational KPIs, distributions, live inference,
 CSV batch analysis, evidence filters, low-confidence review, human corrections,
 health state, and CSV export. See [docs/part-4-dashboard.md](docs/part-4-dashboard.md).
+
+## Part 5 quick start
+
+```bash
+docker compose up --build
+docker compose --profile observability up --build
+```
+
+The final milestone adds container packaging, CI, Prometheus/Grafana
+observability, drift detection, continuous feedback evaluation, shadow-model
+comparison, load testing, and operational runbooks. See
+[docs/part-5-operations.md](docs/part-5-operations.md) and
+[docs/architecture.md](docs/architecture.md).
 
 The pipeline writes:
 

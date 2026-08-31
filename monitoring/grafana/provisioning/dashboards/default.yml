@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: InsightPulse
+    folder: InsightPulse
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

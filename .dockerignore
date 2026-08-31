@@ -1,0 +1,9 @@
+.git
+.github
+.venv
+artifacts
+frontend/dist
+frontend/node_modules
+**/__pycache__
+**/*.pyc
+*.db

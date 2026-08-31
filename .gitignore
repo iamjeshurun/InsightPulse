@@ -8,6 +8,8 @@ artifacts/
 *.db
 frontend/dist/
 frontend/node_modules/
+monitoring/grafana/data/
+monitoring/prometheus/data/
 data/raw/
 .env
 .DS_Store
