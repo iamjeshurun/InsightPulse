@@ -69,6 +69,10 @@ only to original InsightPulse code and documentation.
 - Sampling: fixed dates, ascending time order, round-robin product filters,
   exact deduplication during collection, and a bounded number of API pages.
 
+The measured baseline uses the fixed January 2019 bulk CSV export, whose source
+SHA-256 is `88f75a07ec63a03732cff30f99f8df94b78709455e48d2c9309136b44630f793`.
+Raw text is not committed.
+
 The CFPB states that narratives are unverified and reflect one side of a
 dispute. They are therefore inappropriate for ranking companies or asserting
 that alleged events occurred. Since complaints are overwhelmingly negative,

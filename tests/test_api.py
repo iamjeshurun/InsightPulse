@@ -31,6 +31,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         analysis = response.json()
         self.assertEqual(analysis["predictions"]["sentiment"]["label"], "positive")
+        self.assertIn("aspect", analysis["predictions"])
         self.assertEqual(self.client.get(f"/api/v1/analyses/{analysis['id']}").status_code, 200)
         summary = self.client.get("/api/v1/analytics/summary").json()
         self.assertEqual(summary["total"], 1)

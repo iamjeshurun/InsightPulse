@@ -123,15 +123,17 @@ class Repository:
         rows = self.list_analyses(limit=10_000)
         result: dict[str, Any] = {
             "total": len(rows), "average_confidence": 0.0, "sentiment": {}, "intent": {},
-            "urgency": {}, "products": {}, "by_day": {}, "low_confidence": 0,
+            "urgency": {}, "aspect": {}, "products": {}, "by_day": {}, "low_confidence": 0,
         }
         confidences: list[float] = []
         for row in rows:
             result["products"][row["product"]] = result["products"].get(row["product"], 0) + 1
             day = str(row["created_at"])[:10]
             result["by_day"][day] = result["by_day"].get(day, 0) + 1
-            for task in ("sentiment", "intent", "urgency"):
-                prediction = row["predictions"][task]
+            for task in ("sentiment", "intent", "urgency", "aspect"):
+                prediction = row["predictions"].get(task)
+                if not prediction:
+                    continue
                 label = prediction["label"]
                 result[task][label] = result[task].get(label, 0) + 1
                 confidences.append(float(prediction["confidence"]))
