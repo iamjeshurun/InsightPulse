@@ -1,4 +1,5 @@
 import json
+import csv
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +45,18 @@ class CfpbTests(unittest.TestCase):
             self.assertNotIn("person@example.com", combined)
             self.assertNotIn('"state"', combined)
             self.assertEqual(report["aspect_distribution"], {"fraud_security": 1})
+
+    def test_preparation_accepts_official_bulk_csv_columns(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "complaints.csv"
+            with source.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=("Complaint ID", "Consumer complaint narrative", "Date received", "Product", "Sub-product", "Issue", "Sub-issue"))
+                writer.writeheader()
+                writer.writerow({"Complaint ID": "99", "Consumer complaint narrative": "The mortgage servicing payment was applied incorrectly.", "Date received": "2019-01-01T12:00:00Z", "Product": "Mortgage", "Sub-product": "Home loan", "Issue": "Trouble during payment process", "Sub-issue": "Payment was not applied"})
+            report = prepare_cfpb(source, root / "out")
+            self.assertEqual(sum(report["split_sizes"].values()), 1)
+            self.assertEqual(report["aspect_distribution"], {"payments": 1})
 
 
 if __name__ == "__main__":

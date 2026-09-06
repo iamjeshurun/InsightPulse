@@ -7,6 +7,7 @@ same machine as training. Seed 42 and scikit-learn 1.9.0 were used.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | DynaSent sentiment | 3 | 13,065 / 720 / 720 | 0.5847 | 0.5831 | 0.0162 ms |
 | Bitext intent | 27 | 21,520 / 2,768 / 2,584 | 0.9915 | 0.9910 | 0.0223 ms |
+| CFPB aspect | 9 | 6,488 / 792 / 843 | 0.7224 | 0.5702 | 0.1848 ms |
 
 ## Interpretation
 
@@ -24,6 +25,15 @@ sets come from the same generation process. The result demonstrates that the
 pipeline can learn and serve a 27-class problem; it does not establish
 real-world generalization. A later evaluation on manually labeled organic
 support requests is required before production use.
+
+The aspect baseline uses January 2019 CFPB complaints. Of 19,688 exported
+records, 8,123 narratives remained after removing empty, short, and exact
+duplicate text. The compact aspect label is deterministically derived from the
+consumer-selected CFPB product, issue, and sub-issue—not inferred by a model.
+The gap between 0.7224 accuracy and 0.5702 macro-F1 exposes class imbalance;
+the rare `customer_service` class had only two test examples and zero F1. This
+is a baseline and a concrete target for taxonomy refinement, class-aware
+training, and transformer comparison—not a production-readiness claim.
 
 ## Reproduce
 

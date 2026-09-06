@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 from collections import Counter
@@ -141,6 +142,29 @@ def _bucket(identifier: str, seed: int) -> str:
     return "train" if value < 80 else "validation" if value < 90 else "test"
 
 
+def _source_rows(path: Path) -> Iterable[dict[str, Any]]:
+    if path.suffix.lower() == ".csv":
+        with path.open(encoding="utf-8", newline="") as handle:
+            for raw in csv.DictReader(handle):
+                yield {
+                    "complaint_id": raw.get("Complaint ID", ""),
+                    "narrative": raw.get("Consumer complaint narrative", ""),
+                    "date_received": str(raw.get("Date received", ""))[:10],
+                    "product": raw.get("Product", ""),
+                    "sub_product": raw.get("Sub-product", ""),
+                    "issue": raw.get("Issue", ""),
+                    "sub_issue": raw.get("Sub-issue", ""),
+                }
+        return
+    if path.suffix.lower() == ".jsonl":
+        with path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if line.strip():
+                    yield json.loads(line)
+        return
+    raise ValueError("CFPB source must be a .csv bulk export or .jsonl API snapshot")
+
+
 def prepare_cfpb(source_jsonl: Path, output_dir: Path, seed: int = 42) -> dict[str, Any]:
     """Redact and convert downloaded narratives into aspect-classification splits."""
     splits: dict[str, list[dict[str, Any]]] = {name: [] for name in ("train", "validation", "test")}
@@ -148,36 +172,34 @@ def prepare_cfpb(source_jsonl: Path, output_dir: Path, seed: int = 42) -> dict[s
     redactions: Counter[str] = Counter()
     seen: set[str] = set()
     skipped = 0
-    with source_jsonl.open(encoding="utf-8") as handle:
-        for line in handle:
-            raw = json.loads(line)
-            text, found = redact_pii(str(raw.get("narrative") or ""))
-            fingerprint = hashlib.sha256(" ".join(text.lower().split()).encode()).hexdigest()
-            if len(text) < 20 or fingerprint in seen:
-                skipped += 1
-                continue
-            seen.add(fingerprint)
-            redactions.update(found)
-            aspect = classify_aspect(
-                str(raw.get("issue") or ""),
-                str(raw.get("sub_issue") or ""),
-                str(raw.get("product") or ""),
-            )
-            labels[aspect] += 1
-            identifier = f"cfpb-{raw['complaint_id']}"
-            splits[_bucket(identifier, seed)].append(
-                {
-                    "id": identifier,
-                    "text": text,
-                    "source": "support_ticket",
-                    "product": raw.get("product", "Financial product"),
-                    "created_at": raw.get("date_received", ""),
-                    "aspect": aspect,
-                    "issue": raw.get("issue", ""),
-                    "sub_issue": raw.get("sub_issue", ""),
-                    "dataset": "cfpb-public-complaints",
-                }
-            )
+    for raw in _source_rows(source_jsonl):
+        text, found = redact_pii(str(raw.get("narrative") or ""))
+        fingerprint = hashlib.sha256(" ".join(text.lower().split()).encode()).hexdigest()
+        if len(text) < 20 or fingerprint in seen:
+            skipped += 1
+            continue
+        seen.add(fingerprint)
+        redactions.update(found)
+        aspect = classify_aspect(
+            str(raw.get("issue") or ""),
+            str(raw.get("sub_issue") or ""),
+            str(raw.get("product") or ""),
+        )
+        labels[aspect] += 1
+        identifier = f"cfpb-{raw['complaint_id']}"
+        splits[_bucket(identifier, seed)].append(
+            {
+                "id": identifier,
+                "text": text,
+                "source": "support_ticket",
+                "product": raw.get("product", "Financial product"),
+                "created_at": raw.get("date_received", ""),
+                "aspect": aspect,
+                "issue": raw.get("issue", ""),
+                "sub_issue": raw.get("sub_issue", ""),
+                "dataset": "cfpb-public-complaints",
+            }
+        )
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, rows in splits.items():
         with (output_dir / f"{name}.jsonl").open("w", encoding="utf-8") as handle:

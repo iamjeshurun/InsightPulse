@@ -50,7 +50,7 @@ class JobResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     analysis_id: str
-    task: Literal["sentiment", "intent", "urgency"]
+    task: Literal["sentiment", "intent", "urgency", "aspect"]
     corrected_label: str = Field(min_length=1, max_length=100)
     note: str | None = Field(default=None, max_length=1_000)
 
@@ -72,6 +72,7 @@ class AnalyticsSummary(BaseModel):
     sentiment: dict[str, int]
     intent: dict[str, int]
     urgency: dict[str, int]
+    aspect: dict[str, int]
     products: dict[str, int]
     by_day: dict[str, int]
     low_confidence: int

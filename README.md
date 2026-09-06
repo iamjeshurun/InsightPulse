@@ -65,17 +65,17 @@ These are real local test-set measurements, not targets:
 | --- | --- | ---: | --- | ---: |
 | Sentiment | DynaSent v1.1 Round 2 | 13,065 / 720 | TF-IDF + logistic regression | 0.5831 |
 | Intent (27 classes) | Bitext Customer Support v11 | 21,520 / 2,584 | TF-IDF + logistic regression | 0.9910 |
+| Aspect (9 classes) | CFPB complaints, Jan. 2019 | 6,488 / 843 | TF-IDF + logistic regression | 0.5702 |
 
 The very high intent score is evaluated on a deterministic split of a hybrid
 synthetic dataset, so it is not evidence of equivalent performance on organic
 support tickets. See [docs/benchmark-results.md](docs/benchmark-results.md) and
 [docs/datasets.md](docs/datasets.md) for methodology, licenses, and limitations.
 
-The next benchmark uses real, consented CFPB public complaint narratives for
-supervised aspect classification. The ingestion code balances product families,
-removes exact duplicate templates, excludes location and demographic fields,
-and applies a second PII-redaction pass. Preliminary runs are deliberately not
-reported as final metrics until the deduplicated test set is large enough.
+The aspect benchmark uses real, consented CFPB public complaint narratives.
+The ingestion code removes exact duplicate templates, excludes location and
+demographic fields, and applies a second PII-redaction pass. The dashboard and
+API surface aspect predictions and accept human corrections for that task.
 
 ## Part 3 quick start
 
