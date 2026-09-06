@@ -8,8 +8,8 @@ insights while demonstrating an end-to-end applied machine-learning workflow.
 
 1. **Data foundation (complete):** validate, normalize, redact, deduplicate,
    split, and document customer-feedback data.
-2. **Modeling (complete):** establish classical baselines, fine-tune a transformer, and
-   publish reproducible evaluation and error analysis.
+2. **Modeling (in progress):** measured classical baselines are published;
+   transformer and aspect-level benchmarks are the next experiments.
 3. **Inference platform (complete):** expose versioned batch and real-time predictions via
    FastAPI with persistence, jobs, caching, and tests.
 4. **Decision dashboard (complete):** surface trends, aspects, alerts, evidence, and a
@@ -56,6 +56,20 @@ insightpulse-baseline \
 The model runner produces a serialized model, machine-readable evaluation,
 predictions, run configuration, latency benchmark, behavioral error slices,
 and a model card. See [docs/part-2-modeling.md](docs/part-2-modeling.md).
+
+## Measured benchmark results
+
+These are real local test-set measurements, not targets:
+
+| Task | Dataset | Train / test | Model | Test macro-F1 |
+| --- | --- | ---: | --- | ---: |
+| Sentiment | DynaSent v1.1 Round 2 | 13,065 / 720 | TF-IDF + logistic regression | 0.5831 |
+| Intent (27 classes) | Bitext Customer Support v11 | 21,520 / 2,584 | TF-IDF + logistic regression | 0.9910 |
+
+The very high intent score is evaluated on a deterministic split of a hybrid
+synthetic dataset, so it is not evidence of equivalent performance on organic
+support tickets. See [docs/benchmark-results.md](docs/benchmark-results.md) and
+[docs/datasets.md](docs/datasets.md) for methodology, licenses, and limitations.
 
 ## Part 3 quick start
 
