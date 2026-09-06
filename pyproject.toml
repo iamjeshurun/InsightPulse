@@ -30,6 +30,7 @@ test = ["httpx>=0.28,<1"]
 
 [project.scripts]
 insightpulse-data = "insightpulse_data.cli:main"
+insightpulse-prepare-benchmark = "insightpulse_data.external_cli:main"
 insightpulse-baseline = "insightpulse_modeling.cli:main"
 insightpulse-transformer = "insightpulse_modeling.transformer:main"
 insightpulse-api = "insightpulse_api.main:run"
