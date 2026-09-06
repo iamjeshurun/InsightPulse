@@ -11,12 +11,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
-SUPPORTED_TASKS = ("sentiment", "intent", "urgency")
+DEFAULT_TASKS = ("sentiment", "intent", "urgency")
+SUPPORTED_TASKS = (*DEFAULT_TASKS, "aspect")
 
 
 @dataclass(frozen=True)
 class BaselineConfig:
-    tasks: tuple[str, ...] = SUPPORTED_TASKS
+    tasks: tuple[str, ...] = DEFAULT_TASKS
     seed: int = 42
     max_features: int = 20_000
     min_df: int = 1

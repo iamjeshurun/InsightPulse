@@ -52,3 +52,39 @@ insightpulse-baseline --data-dir artifacts/benchmarks/bitext \
 
 Dataset licenses apply to the datasets. The repository's MIT license applies
 only to original InsightPulse code and documentation.
+
+## CFPB public complaints — aspect classification
+
+- Purpose: real customer-language classification into account access, credit
+  reporting, debt collection, fees and interest, fraud and security, loan
+  servicing, payments, customer service, and other.
+- Source: the U.S. Consumer Financial Protection Bureau public API.
+- License reported by the API: CC0.
+- Labels: deterministic groupings of the consumer-selected `issue`,
+  `sub_issue`, and `product` fields. They are traceable weak supervision, not
+  AI-generated annotations.
+- Privacy: only complaint ID, narrative, date, product, and issue fields are
+  downloaded. Company, state, ZIP code, and demographic tags are excluded.
+  InsightPulse performs a second pass of PII redaction before modeling.
+- Sampling: fixed dates, ascending time order, round-robin product filters,
+  exact deduplication during collection, and a bounded number of API pages.
+
+The CFPB states that narratives are unverified and reflect one side of a
+dispute. They are therefore inappropriate for ranking companies or asserting
+that alleged events occurred. Since complaints are overwhelmingly negative,
+this corpus trains the aspect model—not the overall sentiment model.
+
+```bash
+insightpulse-fetch-cfpb \
+  --output data/raw/cfpb/complaints.jsonl \
+  --date-min 2019-01-01 --date-max 2020-01-01 --limit 1500 \
+  --products "Credit card or prepaid card" "Checking or savings account" \
+    "Mortgage" "Debt collection" "Student loan"
+
+insightpulse-prepare-benchmark cfpb \
+  --input data/raw/cfpb/complaints.jsonl \
+  --output-dir artifacts/benchmarks/cfpb
+
+insightpulse-baseline --data-dir artifacts/benchmarks/cfpb \
+  --output-dir artifacts/models/cfpb-aspect-baseline --tasks aspect
+```
