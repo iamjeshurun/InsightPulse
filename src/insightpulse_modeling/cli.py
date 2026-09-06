@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .baseline import BaselineConfig, SUPPORTED_TASKS
+from .baseline import DEFAULT_TASKS, BaselineConfig, SUPPORTED_TASKS
 from .runner import train_and_evaluate
 
 
@@ -14,7 +14,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train InsightPulse TF-IDF baselines")
     parser.add_argument("--data-dir", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
-    parser.add_argument("--tasks", nargs="+", choices=SUPPORTED_TASKS, default=list(SUPPORTED_TASKS))
+    parser.add_argument("--tasks", nargs="+", choices=SUPPORTED_TASKS, default=list(DEFAULT_TASKS))
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-features", type=int, default=20_000)
     args = parser.parse_args()

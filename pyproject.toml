@@ -12,6 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "InsightPulse Contributors" }]
 dependencies = [
   "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
   "joblib>=1.4,<2",
   "pydantic>=2.9,<3",
   "python-multipart>=0.0.12,<1",
@@ -31,6 +32,7 @@ test = ["httpx>=0.28,<1"]
 [project.scripts]
 insightpulse-data = "insightpulse_data.cli:main"
 insightpulse-prepare-benchmark = "insightpulse_data.external_cli:main"
+insightpulse-fetch-cfpb = "insightpulse_data.external_cli:cfpb_fetch_main"
 insightpulse-baseline = "insightpulse_modeling.cli:main"
 insightpulse-transformer = "insightpulse_modeling.transformer:main"
 insightpulse-api = "insightpulse_api.main:run"
