@@ -52,6 +52,15 @@ two-layer encoder lacks sufficient capacity for the aspect task. The next
 candidate is `microsoft/deberta-v3-small` on a GPU, evaluated on exactly the
 same frozen splits.
 
+A speed-oriented DeBERTa check subsequently fine-tuned
+`microsoft/deberta-v3-small` for four epochs on Apple Silicon with a 2e-5
+learning rate, batch size 32, maximum length 64, and class weighting. Training
+took 10 minutes 22 seconds. The selected checkpoint reached 0.6643 test
+accuracy and 0.5485 macro-F1, so it is also rejected. This run shows that the
+larger encoder alone does not compensate for aggressively truncating long CFPB
+narratives. The definitive follow-up retains 256 tokens and uses GPU compute;
+until it beats 0.6439 macro-F1, the classical aspect model remains promoted.
+
 ## Reproduce
 
 Follow `docs/datasets.md`, then run the two `insightpulse-baseline` commands.

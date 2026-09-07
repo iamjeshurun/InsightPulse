@@ -66,7 +66,10 @@ def train_transformer(
             for split, values in rows.items()
         }
     )
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name or model_name)
+    tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer_name or model_name,
+        fix_mistral_regex=True,
+    )
     tokenized = datasets.map(
         lambda batch: tokenizer(batch["text"], truncation=True, max_length=max_length), batched=True
     )
@@ -75,6 +78,7 @@ def train_transformer(
         num_labels=len(labels),
         id2label={index: label for label, index in label_to_id.items()},
         label2id=label_to_id,
+        dtype=torch.float32,
     )
 
     def metrics(evaluation: Any) -> dict[str, float]:
@@ -97,7 +101,11 @@ def train_transformer(
         ) -> Any:
             gold = inputs.pop("labels")
             outputs = model(**inputs)
-            loss_weights = weights.to(outputs.logits.device) if class_weighted else None
+            loss_weights = (
+                weights.to(device=outputs.logits.device, dtype=outputs.logits.dtype)
+                if class_weighted
+                else None
+            )
             loss = torch.nn.functional.cross_entropy(outputs.logits, gold, weight=loss_weights)
             return (loss, outputs) if return_outputs else loss
 
