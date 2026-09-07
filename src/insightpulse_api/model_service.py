@@ -18,8 +18,17 @@ from insightpulse_data.cfpb import classify_aspect
 TASKS = ("sentiment", "intent", "urgency", "aspect")
 
 POSITIVE = {"excellent", "great", "love", "fast", "helpful", "clear", "wonderful", "solved", "professional"}
-NEGATIVE = {"broken", "bad", "hate", "slow", "freeze", "freezes", "charged", "locked", "cancel", "fails", "failed"}
-URGENT = {"urgent", "immediately", "outage", "security", "charged", "locked", "cancel"}
+NEGATIVE = {"broken", "bad", "hate", "slow", "freeze", "freezes", "charged", "locked", "cancel", "fails", "failed", "outrageous", "unacceptable"}
+URGENT = {
+    "urgent", "immediately", "asap", "emergency", "outage", "down", "security",
+    "breach", "fraud", "fraudulent", "unauthorized", "stolen", "scam", "hacked",
+    "charged", "locked", "lawsuit", "legal", "safety",
+}
+CHURN_PHRASES = (
+    "cancel", "leave", "switch provider", "switch to", "switch banks",
+    "close my account", "close our account", "close my subscription",
+    "take my business", "moving to a competitor", "will not renew", "won't renew",
+)
 
 LABELS: dict[str, list[str]] = {
     "sentiment": ["negative", "neutral", "positive"],
@@ -75,9 +84,9 @@ class ModelService:
         else:
             sentiment, confidence = "neutral", 0.55
         lowered = text.lower()
-        if any(term in lowered for term in ("cancel", "leave", "switch provider")):
+        if any(term in lowered for term in CHURN_PHRASES):
             intent = "churn_risk"
-        elif any(term in lowered for term in ("please add", "feature", "could you", "wish")):
+        elif any(term in lowered for term in ("please add", "feature", "could you", "wish", "it would be great if")):
             intent = "feature_request"
         elif sentiment == "negative":
             intent = "complaint"
