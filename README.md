@@ -69,7 +69,7 @@ then [docs/benchmark-results.md](docs/benchmark-results.md).
 | --- | --- | ---: | --- | ---: | ---: |
 | Sentiment | DynaSent v1.1 R2 (CC BY 4.0) | 13,065 / 720 | TF-IDF + logistic regression | 0.585 | **0.583** |
 | Aspect (8-class) | CFPB complaints, Jan 2019 (CC0) | 6,491 / 843 | TF-IDF + logistic regression | 0.722 | **0.642** |
-| Aspect (8-class) | same splits | 6,491 / 843 | DeBERTa-v3-small, fine-tuned | `<DEBERTA_ACC>` | `<DEBERTA_F1>` |
+| Aspect (8-class) | same splits | 6,491 / 843 | DeBERTa-v3-small, fine-tuned | 0.684 | 0.564 — *rejected* |
 | Support intent (27-class) | Bitext v11 (CDLA-Sharing 1.0) | 19,040 / 2,397 | TF-IDF + logistic regression | 0.988 | 0.987 |
 
 **Reading these honestly:**
@@ -78,22 +78,25 @@ then [docs/benchmark-results.md](docs/benchmark-results.md).
   is adversarially hard; the bag-of-words model fails on negation, sarcasm, and
   implicit sentiment (e.g. it calls *"I would never not recommend this place"*
   negative).
-- The **aspect** task uses real consumer complaint language. Labels are
+- The **aspect** task uses real consumer complaint language; labels are
   deterministic groupings of the consumer-selected CFPB `issue`/`sub-issue`
-  fields (traceable weak supervision, not model-generated). Minority classes
-  (`fees_interest`, `fraud_security`) are where a transformer has room to help.
+  fields (traceable weak supervision, not model-generated). Three fine-tuned
+  transformers (BERT-tiny, DeBERTa-v3-small at 64 and 256 tokens) all scored
+  **below** the linear baseline and were rejected under the promotion rule —
+  the label signal is lexical, so TF-IDF consumes it directly. Full comparison
+  and per-class table in [docs/benchmark-results.md](docs/benchmark-results.md).
 - The **27-class intent** score is high because Bitext is hybrid-synthetic and
   train/test come from the same generator. The split is grouped by de-templated
-  request key so no instruction leaks across it, but this is evidence the
-  *pipeline* scales to many classes — **not** evidence of production accuracy on
-  organic tickets.
+  request key so no instruction leaks across it (this fixed ~10% leakage and
+  moved F1 only 0.991 → 0.987) — evidence the *pipeline* scales to many classes,
+  **not** evidence of production accuracy on organic tickets.
 
 ## Quick start
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[test]'
-python -m unittest discover -s tests -v          # 22 backend tests
+python -m unittest discover -s tests -v          # 25 backend tests
 
 # API + dashboard (rule-based demo model until you train one)
 ( cd frontend && npm ci && npm run build )

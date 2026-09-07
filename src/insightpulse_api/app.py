@@ -41,6 +41,7 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
     metrics = MetricsRegistry()
     request_windows: dict[str, deque[float]] = defaultdict(deque)
     rate_lock = threading.Lock()
+    rate_limit = int(os.getenv("INSIGHTPULSE_RATE_LIMIT_PER_MINUTE", "120"))  # 0 disables
     app = FastAPI(title="InsightPulse API", version=API_VERSION, docs_url="/docs")
     app.state.repository, app.state.model = repository, model
     app.add_middleware(
@@ -56,13 +57,14 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         client = request.client.host if request.client else "unknown"
         now = monotonic()
-        with rate_lock:
-            window = request_windows[client]
-            while window and now - window[0] > 60:
-                window.popleft()
-            if len(window) >= 120:
-                return JSONResponse(status_code=429, content={"detail": "rate limit exceeded"}, headers={"X-Request-ID": request_id})
-            window.append(now)
+        if rate_limit > 0:
+            with rate_lock:
+                window = request_windows[client]
+                while window and now - window[0] > 60:
+                    window.popleft()
+                if len(window) >= rate_limit:
+                    return JSONResponse(status_code=429, content={"detail": "rate limit exceeded"}, headers={"X-Request-ID": request_id})
+                window.append(now)
         started = monotonic()
         response = await call_next(request)
         metrics.observe_request(request.method, request.url.path, response.status_code, monotonic() - started)
