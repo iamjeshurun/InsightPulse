@@ -54,6 +54,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(current["status"], "completed")
         self.assertEqual(current["completed"], 2)
 
+    def test_rate_limit_is_configurable(self):
+        with patch.dict("os.environ", {"INSIGHTPULSE_RATE_LIMIT_PER_MINUTE": "3"}):
+            with TestClient(create_app(Path(self.temporary.name) / "rl.db")) as client:
+                codes = [client.get("/health").status_code for _ in range(5)]
+        self.assertEqual(codes[:3], [200, 200, 200])
+        self.assertEqual(codes[-1], 429)
+
     def test_compiled_dashboard_can_be_served(self):
         frontend = Path(self.temporary.name) / "frontend"
         frontend.mkdir()

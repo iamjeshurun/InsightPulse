@@ -1,13 +1,18 @@
 # Reproducible baseline benchmark
 
-Run date: 2026-09-06. Hardware-specific latency was measured locally on the
-same machine as training. Seed 42 and scikit-learn 1.9.0 were used.
+Run date: 2026-09-07. Seed 42, scikit-learn 1.9.0, Python 3.13. Latency is
+measured on the training machine (Apple M5).
 
 | Task | Classes | Train / validation / test | Accuracy | Macro-F1 | Mean latency per example |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| DynaSent sentiment | 3 | 13,065 / 720 / 720 | 0.5847 | 0.5831 | 0.0162 ms |
-| Bitext intent | 27 | 21,520 / 2,768 / 2,584 | 0.9915 | 0.9910 | 0.0223 ms |
-| CFPB aspect | 8 | 6,488 / 792 / 843 | 0.7236 | 0.6439 | 0.2222 ms |
+| DynaSent sentiment | 3 | 13,065 / 720 / 720 | 0.5847 | 0.5831 | 0.0073 ms |
+| Bitext support intent | 27 | 19,040 / 2,365 / 2,397 | 0.9883 | 0.9873 | 0.0096 ms |
+| CFPB aspect | 8 | 6,491 / 789 / 843 | 0.7224 | 0.6419 | 0.0830 ms |
+
+Split sizes shift by a handful of records between runs because CFPB keeps
+revising historical complaints and the Bitext regrouped split drops
+exact-normalized duplicates; the numbers above are one such run and rebuild
+within noise from the commands in `docs/datasets.md`.
 
 ## Interpretation
 
@@ -21,50 +26,87 @@ experiment.
 
 The intent result is strong but must be read in context. Bitext is hybrid
 synthetic, its classes use recognizable vocabulary, and both training and test
-sets come from the same generation process. The result demonstrates that the
-pipeline can learn and serve a 27-class problem; it does not establish
-real-world generalization. A later evaluation on manually labeled organic
-support requests is required before production use.
+sets come from the same generation process. The split is now grouped by a
+de-templated request key, which removed ~10% train/test instruction leakage and
+moved macro-F1 only from 0.9910 to 0.9873 — the task is just close to solved for
+a bag-of-words model at this distribution. It demonstrates the pipeline learns
+and serves a 27-class problem; it is not evidence of real-world generalization.
 
-The aspect baseline uses January 2019 CFPB complaints. Of 19,688 exported
-records, 8,123 narratives remained after removing empty, short, and exact
-duplicate text. The compact aspect label is deterministically derived from the
-consumer-selected CFPB product, issue, and sub-issue—not inferred by a model.
-The original nine-class taxonomy placed only two test examples in
-`customer_service`, making its score unstable. The refined eight-class taxonomy
-merges that insufficiently supported class into `other`; macro-F1 consequently
-rises from 0.5702 to 0.6439 without changing the split. Class-aware transformer
-training must beat that stronger target before it is promoted.
+The aspect baseline uses every CFPB complaint with a public narrative whose
+`date_received` falls in January 2019: 8,911 narratives, 8,124 after exact
+deduplication. The compact aspect label is deterministically derived from the
+consumer-selected CFPB issue, sub-issue, and product fields — not inferred by a
+model. Minority classes (`fees_interest`, `fraud_security`, `account_access`)
+are where a stronger model has room to help.
 
 ## Transformer experiment
 
-The transformer runner now supports dynamic padding, maximum sequence length,
-configurable learning rate and batch size, square-root inverse-frequency class
-weights, validation-based checkpoint selection, and the same detailed held-out
-evaluation contract as the baseline.
+The transformer runner supports dynamic padding, configurable sequence length /
+learning rate / batch size, square-root inverse-frequency class weights,
+validation-based checkpoint selection, and the same held-out evaluation
+contract as the baseline. Three candidates have been trained on the frozen CFPB
+aspect splits; **all three lost to the classical baseline and none was
+promoted.**
 
-An initial CPU-feasible capacity check fine-tuned
-`google/bert_uncased_L-2_H-128_A-2` for ten epochs with a 1e-4 learning rate,
-batch size 32, maximum length 128, and class weighting. It reached 0.6785 test
-accuracy and 0.5605 macro-F1, so it is explicitly rejected: it is 0.0834 below
-the refined classical baseline. This negative result is useful evidence that a
-two-layer encoder lacks sufficient capacity for the aspect task. The next
-candidate is `microsoft/deberta-v3-small` on a GPU, evaluated on exactly the
-same frozen splits.
+| Model | max_len | epochs | Test acc | Test macro-F1 | vs. baseline 0.642 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `google/bert_uncased_L-2_H-128_A-2` | 128 | 10 | 0.679 | 0.561 | −0.081 |
+| `microsoft/deberta-v3-small` | 64 | 4 | 0.664 | 0.549 | −0.093 |
+| `microsoft/deberta-v3-small` (class-weighted) | 256 | 4 | 0.684 | **0.564** | −0.078 |
 
-A speed-oriented DeBERTa check subsequently fine-tuned
-`microsoft/deberta-v3-small` for four epochs on Apple Silicon with a 2e-5
-learning rate, batch size 32, maximum length 64, and class weighting. Training
-took 10 minutes 22 seconds. The selected checkpoint reached 0.6643 test
-accuracy and 0.5485 macro-F1, so it is also rejected. This run shows that the
-larger encoder alone does not compensate for aggressively truncating long CFPB
-narratives. The definitive follow-up retains 256 tokens and uses GPU compute;
-until it beats 0.6439 macro-F1, the classical aspect model remains promoted.
+The 256-token DeBERTa run (2e-5 LR, batch 16, Apple M5 GPU, ~38 min) climbed
+0.469 → 0.564 → 0.591 → *(best checkpoint)* on validation macro-F1 but still
+finished below the baseline on the held-out test set, and **worse on exactly
+the minority classes it was meant to help**: `fraud_security` F1 fell from 0.455
+to 0.188, `account_access` from 0.581 to 0.483.
+
+| class | baseline F1 | DeBERTa-256 F1 | test n |
+| --- | ---: | ---: | ---: |
+| account_access | 0.581 | 0.483 | 53 |
+| credit_reporting | 0.864 | 0.869 | 299 |
+| debt_collection | 0.789 | 0.754 | 140 |
+| fees_interest | 0.500 | 0.455 | 37 |
+| fraud_security | 0.455 | 0.188 | 44 |
+| loan_servicing | 0.657 | 0.615 | 96 |
+| other | 0.711 | 0.628 | 65 |
+| payments | 0.579 | 0.520 | 109 |
+
+**Interpretation.** The aspect labels are weak supervision keyed off terms in
+the CFPB `issue` field, and those terms recur almost verbatim in the narratives
+— signal a linear TF-IDF model consumes directly. Contextual embeddings add
+little here, and with only 37–53 training-equivalent examples in the rare
+classes the fine-tune overfits the majority. The one thing DeBERTa did better:
+calibration (ECE 0.084 vs the baseline's 0.226).
+
+**Promotion rule (unchanged).** Promote a transformer only when it beats the
+frozen-test macro-F1 *and* improves minority-class recall at acceptable latency
+and memory. None of the three candidates qualifies, so the classical model is
+served in production. The full DeBERTa-256 report is at
+`artifacts/reports/cfpb-aspect-deberta-eval.json` after a rebuild; weights are
+not committed.
+
+A productive next step is better labels (a small hand-annotated aspect test set,
+or aspect *spans* rather than issue-field groupings), not a bigger encoder.
 
 ## Reproduce
 
-Follow `docs/datasets.md`, then run the two `insightpulse-baseline` commands.
+Follow `docs/datasets.md` to build the three benchmarks, then:
+
+```bash
+insightpulse-baseline --data-dir artifacts/benchmarks/dynasent \
+  --output-dir artifacts/models/dynasent-baseline --tasks sentiment
+insightpulse-baseline --data-dir artifacts/benchmarks/bitext \
+  --output-dir artifacts/models/bitext-baseline --tasks intent
+insightpulse-baseline --data-dir artifacts/benchmarks/cfpb \
+  --output-dir artifacts/models/cfpb-aspect-baseline --tasks aspect
+
+# the rejected transformer candidate (needs the [transformer] extra + a GPU)
+insightpulse-transformer --data-dir artifacts/benchmarks/cfpb \
+  --output-dir artifacts/models/cfpb-aspect-deberta --task aspect \
+  --config configs/transformer.example.json
+```
+
 Generated reports include per-class precision/recall/F1, confusion matrices,
 expected calibration error, behavior slices, error examples, model files, and
-run configurations. The generated artifacts are ignored by Git because model
-files and third-party examples should be rebuilt from their documented sources.
+run configurations. Generated artifacts are Git-ignored; rebuild them from the
+documented sources.
