@@ -1,0 +1,20 @@
+# Render.com blueprint — free-tier Docker web service.
+# Deploy: push to GitHub, then New + Blueprint on render.com and pick this repo.
+# The free instance sleeps after ~15 min idle and its disk is ephemeral, so the
+# SQLite history resets on each deploy. That is acceptable for a public demo;
+# see docs/deployment.md for a persistent-disk / Postgres upgrade path.
+services:
+  - type: web
+    name: insightpulse
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /ready
+    autoDeploy: true
+    envVars:
+      - key: INSIGHTPULSE_DB
+        value: /app/artifacts/insightpulse.db
+      - key: INSIGHTPULSE_CORS_ORIGINS
+        sync: false            # set to the Render URL after the first deploy
+      - key: INSIGHTPULSE_ASPECT_MODEL_PATH
+        sync: false            # optional: path to a trained baseline baked into the image
