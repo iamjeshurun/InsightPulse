@@ -7,7 +7,7 @@ same machine as training. Seed 42 and scikit-learn 1.9.0 were used.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | DynaSent sentiment | 3 | 13,065 / 720 / 720 | 0.5847 | 0.5831 | 0.0162 ms |
 | Bitext intent | 27 | 21,520 / 2,768 / 2,584 | 0.9915 | 0.9910 | 0.0223 ms |
-| CFPB aspect | 9 | 6,488 / 792 / 843 | 0.7224 | 0.5702 | 0.1848 ms |
+| CFPB aspect | 8 | 6,488 / 792 / 843 | 0.7236 | 0.6439 | 0.2222 ms |
 
 ## Interpretation
 
@@ -30,10 +30,27 @@ The aspect baseline uses January 2019 CFPB complaints. Of 19,688 exported
 records, 8,123 narratives remained after removing empty, short, and exact
 duplicate text. The compact aspect label is deterministically derived from the
 consumer-selected CFPB product, issue, and sub-issue—not inferred by a model.
-The gap between 0.7224 accuracy and 0.5702 macro-F1 exposes class imbalance;
-the rare `customer_service` class had only two test examples and zero F1. This
-is a baseline and a concrete target for taxonomy refinement, class-aware
-training, and transformer comparison—not a production-readiness claim.
+The original nine-class taxonomy placed only two test examples in
+`customer_service`, making its score unstable. The refined eight-class taxonomy
+merges that insufficiently supported class into `other`; macro-F1 consequently
+rises from 0.5702 to 0.6439 without changing the split. Class-aware transformer
+training must beat that stronger target before it is promoted.
+
+## Transformer experiment
+
+The transformer runner now supports dynamic padding, maximum sequence length,
+configurable learning rate and batch size, square-root inverse-frequency class
+weights, validation-based checkpoint selection, and the same detailed held-out
+evaluation contract as the baseline.
+
+An initial CPU-feasible capacity check fine-tuned
+`google/bert_uncased_L-2_H-128_A-2` for ten epochs with a 1e-4 learning rate,
+batch size 32, maximum length 128, and class weighting. It reached 0.6785 test
+accuracy and 0.5605 macro-F1, so it is explicitly rejected: it is 0.0834 below
+the refined classical baseline. This negative result is useful evidence that a
+two-layer encoder lacks sufficient capacity for the aspect task. The next
+candidate is `microsoft/deberta-v3-small` on a GPU, evaluated on exactly the
+same frozen splits.
 
 ## Reproduce
 

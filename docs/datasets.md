@@ -57,7 +57,8 @@ only to original InsightPulse code and documentation.
 
 - Purpose: real customer-language classification into account access, credit
   reporting, debt collection, fees and interest, fraud and security, loan
-  servicing, payments, customer service, and other.
+  servicing, payments, and other. Categories with inadequate support are
+  merged into `other` before evaluation.
 - Source: the U.S. Consumer Financial Protection Bureau public API.
 - License reported by the API: CC0.
 - Labels: deterministic groupings of the consumer-selected `issue`,
