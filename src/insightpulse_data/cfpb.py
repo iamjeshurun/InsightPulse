@@ -26,7 +26,6 @@ ASPECT_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("account_access", ("account", "login", "password", "card activation", "cash access")),
     ("debt_collection", ("debt", "collector", "collection")),
     ("loan_servicing", ("loan", "mortgage", "foreclosure", "repay", "servicing")),
-    ("customer_service", ("customer service", "company response", "communication", "contact")),
 )
 
 

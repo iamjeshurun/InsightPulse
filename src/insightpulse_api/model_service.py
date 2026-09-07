@@ -76,7 +76,7 @@ class ModelService:
                 "confidence": 0.64 if aspect != "other" else 0.5,
                 "probabilities": self._distribution(
                     aspect,
-                    ["account_access", "credit_reporting", "customer_service", "debt_collection", "fees_interest", "fraud_security", "loan_servicing", "other", "payments"],
+                    ["account_access", "credit_reporting", "debt_collection", "fees_interest", "fraud_security", "loan_servicing", "other", "payments"],
                     0.64 if aspect != "other" else 0.5,
                 ),
             },

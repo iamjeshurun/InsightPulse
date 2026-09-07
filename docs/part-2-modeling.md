@@ -7,7 +7,7 @@ transformer. Each task receives an independent TF-IDF and class-balanced
 logistic-regression pipeline. This makes coefficients inspectable, inference
 fast, and failure analysis straightforward.
 
-The optional transformer entry point fine-tunes `distilroberta-base` one task
+The optional transformer entry point fine-tunes a Hugging Face encoder one task
 at a time and selects checkpoints using validation macro-F1. It is intentionally
 not run against the ten-row demonstration dataset: such a result would be
 statistically meaningless. Use a licensed, domain-appropriate dataset with
@@ -38,7 +38,12 @@ python -m insightpulse_modeling.transformer \
   --data-dir artifacts/processed \
   --output-dir artifacts/models/sentiment-transformer \
   --task sentiment \
-  --model-name distilroberta-base
+  --model-name microsoft/deberta-v3-small \
+  --epochs 4 \
+  --max-length 256 \
+  --train-batch-size 16 \
+  --learning-rate 2e-5 \
+  --class-weighted
 ```
 
 ## Evaluation contract
@@ -58,9 +63,16 @@ Validation metrics guide model selection. Test metrics are read only for the
 final comparison. No metric from `data/sample_feedback.csv` should appear on a
 resume because it is a pipeline fixture, not a benchmark.
 
-## Next experiment
+The command writes the selected model, tokenizer, model card, test predictions,
+and a JSON report containing per-class scores, calibration, behavioral slices,
+and error examples. For sentiment, omit `--class-weighted` unless validation
+results show that weighting helps. A CUDA GPU is recommended for the DeBERTa
+candidate; the command also works on CPU, but training is substantially slower.
 
-Before Part 3, train both approaches on a public, redistribution-compatible
-customer-feedback dataset. Record the dataset version, split fingerprints,
-hardware, runtime, and model-selection rule. Promote the transformer only when
-its quality gain justifies its latency and operational cost.
+## Promotion rule
+
+Promote a transformer only when it beats the corresponding frozen-test
+macro-F1 (0.5831 sentiment or 0.6439 aspect), improves minority-class recall,
+and has an acceptable latency and memory cost. Never select hyperparameters on
+the test set. Record dataset version, split fingerprints, hardware, runtime,
+configuration, and failed candidates as well as the winner.

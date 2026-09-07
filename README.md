@@ -65,7 +65,7 @@ These are real local test-set measurements, not targets:
 | --- | --- | ---: | --- | ---: |
 | Sentiment | DynaSent v1.1 Round 2 | 13,065 / 720 | TF-IDF + logistic regression | 0.5831 |
 | Intent (27 classes) | Bitext Customer Support v11 | 21,520 / 2,584 | TF-IDF + logistic regression | 0.9910 |
-| Aspect (9 classes) | CFPB complaints, Jan. 2019 | 6,488 / 843 | TF-IDF + logistic regression | 0.5702 |
+| Aspect (8 classes) | CFPB complaints, Jan. 2019 | 6,488 / 843 | TF-IDF + logistic regression | 0.6439 |
 
 The very high intent score is evaluated on a deterministic split of a hybrid
 synthetic dataset, so it is not evidence of equivalent performance on organic
