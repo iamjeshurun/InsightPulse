@@ -24,6 +24,8 @@ dependencies = [
 transformer = [
   "accelerate>=1.0,<2",
   "datasets>=3.0,<5",
+  "protobuf>=5,<7",
+  "sentencepiece>=0.2,<1",
   "torch>=2.3,<3",
   "transformers>=4.45,<6",
 ]
