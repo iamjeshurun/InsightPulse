@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from insightpulse_data.cfpb import classify_aspect, prepare_cfpb
+from insightpulse_data.cfpb import _search_after, classify_aspect, prepare_cfpb
 
 
 class CfpbTests(unittest.TestCase):
@@ -12,6 +12,10 @@ class CfpbTests(unittest.TestCase):
         self.assertEqual(classify_aspect("Incorrect information on your credit report"), "credit_reporting")
         self.assertEqual(classify_aspect("Problem with a lender", "Charged an overdraft fee"), "fees_interest")
         self.assertEqual(classify_aspect("Unauthorized card transaction"), "fraud_security")
+
+    def test_search_after_token_joins_sort_values(self):
+        self.assertEqual(_search_after({"sort": [1546300854000, "3113804"]}), "1546300854000_3113804")
+        self.assertIsNone(_search_after({}))
 
     def test_preparation_redacts_deduplicates_and_omits_geography(self):
         rows = [

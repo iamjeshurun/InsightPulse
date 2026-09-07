@@ -37,6 +37,13 @@ def classify_aspect(issue: str, sub_issue: str = "", product: str = "") -> str:
     return "other"
 
 
+def _search_after(hit: dict[str, Any]) -> str | None:
+    token = hit.get("sort")
+    if not token:
+        return None
+    return "_".join(str(part) for part in token)
+
+
 def fetch_public_complaints(
     output_path: Path,
     *,
@@ -45,20 +52,26 @@ def fetch_public_complaints(
     limit: int = 10_000,
     page_size: int = 100,
     products: tuple[str, ...] = (),
-    max_pages_per_product: int = 20,
 ) -> dict[str, Any]:
-    """Fetch a date-bounded slice, round-robin balanced across products."""
+    """Fetch a date-bounded slice of complaints that carry a public narrative.
+
+    Deep pagination uses the CFPB API's ``search_after`` cursor (its ``frm``
+    offset parameter is capped at a single page), so the collector can walk the
+    whole date window.  With no ``products`` filter it pages one time-ordered
+    stream; with one or more it round-robins across them so no single product
+    dominates the sample.
+    """
     if limit < 1 or not 1 <= page_size <= 100:
         raise ValueError("limit must be positive and page_size must be between 1 and 100")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fetched = retained = duplicate_narratives = 0
     seen_narratives: set[str] = set()
     product_filters: tuple[str | None, ...] = products or (None,)
-    offsets: dict[str | None, int] = {product: 0 for product in product_filters}
+    cursors: dict[str | None, str | None] = {product: None for product in product_filters}
     exhausted: set[str | None] = set()
     with (
         httpx.Client(
-            headers={"User-Agent": "InsightPulse/0.6 research"},
+            headers={"User-Agent": "InsightPulse/0.7 research"},
             timeout=60,
             follow_redirects=True,
         ) as client,
@@ -68,19 +81,17 @@ def fetch_public_complaints(
             for product_filter in product_filters:
                 if retained >= limit or product_filter in exhausted:
                     continue
-                offset = offsets[product_filter]
-                if offset >= min(10_000, page_size * max_pages_per_product):
-                    exhausted.add(product_filter)
-                    continue
                 params: dict[str, Any] = {
                     "date_received_min": date_min,
                     "date_received_max": date_max,
+                    "has_narrative": "true",
                     "sort": "created_date_asc",
                     "size": page_size,
-                    "frm": offset,
                     "no_aggs": "true",
                     "no_highlight": "true",
                 }
+                if cursors[product_filter]:
+                    params["search_after"] = cursors[product_filter]
                 if product_filter:
                     params["product"] = product_filter
                 response = client.get(API_URL, params=params)
@@ -89,8 +100,10 @@ def fetch_public_complaints(
                 if not hits:
                     exhausted.add(product_filter)
                     continue
-                offsets[product_filter] += len(hits)
+                cursors[product_filter] = _search_after(hits[-1])
                 fetched += len(hits)
+                if len(hits) < page_size or cursors[product_filter] is None:
+                    exhausted.add(product_filter)
                 for hit in hits:
                     source = hit.get("_source", {})
                     narrative = str(source.get("complaint_what_happened") or "").strip()
@@ -119,8 +132,15 @@ def fetch_public_complaints(
         "query": {
             "date_received_min": date_min,
             "date_received_max": date_max,
+            "has_narrative": True,
             "products": list(products),
-            "sampling": "round-robin by product, ascending date",
+            "sampling": (
+                "round-robin by product, ascending created date"
+                if products
+                else "single stream, ascending created date"
+            ),
+            "page_size": page_size,
+            "pagination": "search_after cursor",
         },
         "fetched": fetched,
         "retained_narratives": retained,

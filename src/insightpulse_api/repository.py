@@ -137,7 +137,8 @@ class Repository:
                 label = prediction["label"]
                 result[task][label] = result[task].get(label, 0) + 1
                 confidences.append(float(prediction["confidence"]))
-            if min(float(value["confidence"]) for value in row["predictions"].values()) < 0.65:
+            scores = [float(value["confidence"]) for value in row["predictions"].values()]
+            if scores and min(scores) < 0.65:
                 result["low_confidence"] += 1
         result["average_confidence"] = sum(confidences) / len(confidences) if confidences else 0.0
         return result

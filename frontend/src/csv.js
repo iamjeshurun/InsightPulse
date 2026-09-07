@@ -23,11 +23,12 @@ export function parseCsv(text) {
 
 export function toAnalysisCsv(analyses) {
   const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
+  const label = (item, task) => item.predictions?.[task]?.label || ''
   const headers = ['id', 'created_at', 'product', 'source', 'sentiment', 'aspect', 'intent', 'urgency', 'text']
   const rows = analyses.map((item) => [
     item.id, item.created_at, item.product, item.source,
-    item.predictions.sentiment.label, item.predictions.aspect?.label || 'other', item.predictions.intent.label,
-    item.predictions.urgency.label, item.text,
+    label(item, 'sentiment'), label(item, 'aspect') || 'other', label(item, 'intent'),
+    label(item, 'urgency'), item.text,
   ].map(escape).join(','))
   return [headers.join(','), ...rows].join('\n')
 }

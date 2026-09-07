@@ -24,9 +24,9 @@ export INSIGHTPULSE_DB=artifacts/insightpulse.db
 insightpulse-api
 ```
 
-Without a model artifact the API clearly identifies itself as
-`demo-lexicon-1`. This keeps the product demonstrable without pretending the
-fallback is a trained model.
+Without a model artifact the API clearly identifies itself with a
+`demo-lexicon-*` model version. This keeps the product demonstrable without
+pretending the rule-based fallback is a trained model.
 
 ## Endpoints
 

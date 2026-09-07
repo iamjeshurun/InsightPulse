@@ -22,9 +22,14 @@ source checksum, split policy, label counts, URL, license, and known caveats.
 - Provenance: hybrid synthetic examples generated with Bitext technology and
   curated by computational linguists; results may not transfer to organic
   production tickets.
-- Split: deterministic 80/10/10 hash split seeded with 42. The intent is part
-  of the hash input, which keeps every class distributed without using text
-  order from the source CSV.
+- Split: deterministic 80/10/10 grouped by a de-templated request key. Bitext
+  reuses each request many times with only a `{{placeholder}}` or light
+  phrasing change; grouping on the key (placeholders and punctuation removed)
+  keeps every variant of one request in a single split and drops
+  exact-normalized duplicates, so no instruction leaks from train into test.
+  Even so, train and test come from the same generator and share vocabulary and
+  structure, which is why the intent score is not evidence of production
+  performance.
 
 ## Reproduction
 
@@ -67,12 +72,17 @@ only to original InsightPulse code and documentation.
 - Privacy: only complaint ID, narrative, date, product, and issue fields are
   downloaded. Company, state, ZIP code, and demographic tags are excluded.
   InsightPulse performs a second pass of PII redaction before modeling.
-- Sampling: fixed dates, ascending time order, round-robin product filters,
-  exact deduplication during collection, and a bounded number of API pages.
+- Sampling: fixed dates, ascending created-date order, `search_after` cursor
+  pagination (the API caps `frm` offsets at one page), exact narrative
+  deduplication during collection. With no product filter the collector walks
+  the entire date window; product filters switch it to round-robin.
 
-The measured baseline uses the fixed January 2019 bulk CSV export, whose source
-SHA-256 is `88f75a07ec63a03732cff30f99f8df94b78709455e48d2c9309136b44630f793`.
-Raw text is not committed.
+The measured baseline is every complaint with a public narrative whose
+`date_received` falls in January 2019 — 8,911 narratives, 8,124 after exact
+deduplication. Because CFPB keeps revising historical records, the fetched file
+is checksummed at build time (`<output>.metadata.json`) rather than pinned to a
+number here; re-running the command below reproduces the splits within a few
+records. Raw text is not committed.
 
 The CFPB states that narratives are unverified and reflect one side of a
 dispute. They are therefore inappropriate for ranking companies or asserting
@@ -81,13 +91,11 @@ this corpus trains the aspect model—not the overall sentiment model.
 
 ```bash
 insightpulse-fetch-cfpb \
-  --output data/raw/cfpb/complaints.jsonl \
-  --date-min 2019-01-01 --date-max 2020-01-01 --limit 1500 \
-  --products "Credit card or prepaid card" "Checking or savings account" \
-    "Mortgage" "Debt collection" "Student loan"
+  --output data/raw/cfpb/complaints-2019-01.jsonl \
+  --date-min 2019-01-01 --date-max 2019-02-01 --limit 20000
 
 insightpulse-prepare-benchmark cfpb \
-  --input data/raw/cfpb/complaints.jsonl \
+  --input data/raw/cfpb/complaints-2019-01.jsonl \
   --output-dir artifacts/benchmarks/cfpb
 
 insightpulse-baseline --data-dir artifacts/benchmarks/cfpb \

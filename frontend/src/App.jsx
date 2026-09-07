@@ -3,8 +3,12 @@ import { api } from './api.js'
 import { parseCsv, toAnalysisCsv } from './csv.js'
 
 const EMPTY_SUMMARY = { total: 0, average_confidence: 0, sentiment: {}, intent: {}, urgency: {}, aspect: {}, products: {}, by_day: {}, low_confidence: 0 }
-const pretty = (value) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-const confidence = (analysis) => Math.min(...Object.values(analysis.predictions).map((item) => item.confidence))
+const pretty = (value) => (value || '—').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+const labelOf = (analysis, task) => analysis?.predictions?.[task]?.label || ''
+const confidence = (analysis) => {
+  const scores = Object.values(analysis?.predictions || {}).map((item) => item.confidence)
+  return scores.length ? Math.min(...scores) : 1
+}
 
 function StatCard({ label, value, detail, tone = 'ink' }) {
   return <article className={`stat-card ${tone}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>
@@ -59,11 +63,11 @@ function CsvUpload({ onComplete }) {
 
 function ReviewTable({ analyses, onFeedback }) {
   const [filter, setFilter] = useState('all')
-  const visible = analyses.filter((item) => filter === 'all' || item.predictions.sentiment.label === filter || item.predictions.urgency.label === filter)
+  const visible = analyses.filter((item) => filter === 'all' || labelOf(item, 'sentiment') === filter || labelOf(item, 'urgency') === filter)
   return <section className="panel table-panel">
     <div className="panel-heading"><div><span className="eyebrow">Evidence</span><h2>Recent feedback</h2></div><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All signals</option><option value="negative">Negative</option><option value="positive">Positive</option><option value="high">High urgency</option></select></div>
     <div className="table-scroll"><table><thead><tr><th>Feedback</th><th>Product</th><th>Sentiment</th><th>Aspect</th><th>Intent</th><th>Confidence</th><th /></tr></thead>
-      <tbody>{visible.map((item) => <tr key={item.id}><td><p>{item.text}</p><small>{new Date(item.created_at).toLocaleString()}</small></td><td>{item.product}</td><td><span className={`tag ${item.predictions.sentiment.label}`}>{pretty(item.predictions.sentiment.label)}</span></td><td>{pretty(item.predictions.aspect?.label || 'other')}</td><td>{pretty(item.predictions.intent.label)}</td><td>{Math.round(confidence(item) * 100)}%</td><td><button className="text-button" onClick={() => onFeedback(item)}>Correct</button></td></tr>)}</tbody></table></div>
+      <tbody>{visible.map((item) => <tr key={item.id}><td><p>{item.text}</p><small>{new Date(item.created_at).toLocaleString()}</small></td><td>{item.product}</td><td><span className={`tag ${labelOf(item, 'sentiment')}`}>{pretty(labelOf(item, 'sentiment'))}</span></td><td>{pretty(labelOf(item, 'aspect') || 'other')}</td><td>{pretty(labelOf(item, 'intent'))}</td><td>{Math.round(confidence(item) * 100)}%</td><td><button className="text-button" onClick={() => onFeedback(item)}>Correct</button></td></tr>)}</tbody></table></div>
     {!visible.length && <div className="empty">No feedback matches this filter.</div>}
   </section>
 }
