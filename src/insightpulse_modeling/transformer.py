@@ -201,19 +201,36 @@ def main() -> None:
     parser.add_argument("--data-dir", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--task", required=True, choices=SUPPORTED_TASKS)
-    parser.add_argument("--model-name", default="distilroberta-base")
-    parser.add_argument("--epochs", type=float, default=3.0)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--max-length", type=int, default=128)
-    parser.add_argument("--train-batch-size", type=int, default=32)
-    parser.add_argument("--class-weighted", action="store_true")
-    parser.add_argument("--learning-rate", type=float, default=2e-5)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Optional JSON file of defaults (see configs/transformer.example.json); "
+        "explicit command-line flags still win.",
+    )
+    parser.add_argument("--model-name")
+    parser.add_argument("--epochs", type=float)
+    parser.add_argument("--seed", type=int)
+    parser.add_argument("--max-length", type=int)
+    parser.add_argument("--train-batch-size", type=int)
+    parser.add_argument("--class-weighted", action="store_true", default=None)
+    parser.add_argument("--learning-rate", type=float)
     parser.add_argument("--tokenizer-name")
     args = parser.parse_args()
+
+    defaults = {
+        "model_name": "distilroberta-base", "epochs": 3.0, "seed": 42, "max_length": 128,
+        "train_batch_size": 32, "class_weighted": False, "learning_rate": 2e-5, "tokenizer_name": None,
+    }
+    if args.config:
+        defaults.update(json.loads(args.config.read_text(encoding="utf-8")))
+    settings = {
+        key: getattr(args, key) if getattr(args, key) is not None else defaults[key]
+        for key in defaults
+    }
     report = train_transformer(
-        args.data_dir, args.output_dir, args.task, args.model_name, args.epochs, args.seed,
-        args.max_length, args.train_batch_size, args.class_weighted, args.learning_rate,
-        args.tokenizer_name,
+        args.data_dir, args.output_dir, args.task, settings["model_name"], settings["epochs"],
+        settings["seed"], settings["max_length"], settings["train_batch_size"],
+        settings["class_weighted"], settings["learning_rate"], settings["tokenizer_name"],
     )
     print(json.dumps({"task": args.task, "accuracy": report["test"]["accuracy"], "macro_f1": report["test"]["macro_f1"]}, indent=2))
 
