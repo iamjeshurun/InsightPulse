@@ -7,12 +7,15 @@ COPY frontend/ ./
 RUN npm run test && npm run build
 
 FROM python:3.12-slim AS runtime
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8000
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8000 \
+    INSIGHTPULSE_SENTIMENT_MODEL_PATH=/app/models/dynasent-sentiment.joblib \
+    INSIGHTPULSE_ASPECT_MODEL_PATH=/app/models/cfpb-aspect.joblib
 WORKDIR /app
 RUN addgroup --system insightpulse && adduser --system --ingroup insightpulse insightpulse
 COPY pyproject.toml README.md LICENSE ./
 COPY src/ ./src/
 RUN pip install --no-cache-dir .
+COPY models/ ./models/
 COPY --from=frontend /build/frontend/dist ./frontend/dist
 RUN mkdir -p /app/artifacts && chown -R insightpulse:insightpulse /app
 USER insightpulse
