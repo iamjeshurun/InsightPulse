@@ -6,8 +6,8 @@ narratives — and turns it into structured, reviewable signal that a product or
 support team can act on. It is built as a portfolio project to show the full
 applied-ML lifecycle, from a reproducible dataset to a monitored service.
 
-<!-- DEMO -->
-<!-- Live demo: <DEMO_URL> -->
+**Live demo:** https://insightpulse-xlc2.onrender.com  ·  API docs at `/docs`  ·  metrics at `/metrics`
+_(free tier — the first request after ~15 min idle takes a few seconds to wake, and the analytics history resets on redeploy)_
 
 ## The problem
 
@@ -98,16 +98,19 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e '.[test]'
 python -m unittest discover -s tests -v          # 25 backend tests
 
-# API + dashboard (rule-based demo model until you train one)
+# API + dashboard — serves the bundled sentiment + aspect models;
+# intent + urgency fall back to a transparent lexicon (GET /health shows which)
 ( cd frontend && npm ci && npm run build )
+INSIGHTPULSE_SENTIMENT_MODEL_PATH=models/dynasent-sentiment.joblib \
+INSIGHTPULSE_ASPECT_MODEL_PATH=models/cfpb-aspect.joblib \
 insightpulse-api                                  # http://localhost:8000  ·  /docs
 
-# or the whole thing in Docker
+# or the whole thing in Docker (env defaults already point at models/)
 docker compose up --build
 docker compose --profile observability up --build # + Prometheus :9090 / Grafana :3000
 ```
 
-Train and serve real models:
+Rebuild the models from scratch, or train new ones:
 
 ```bash
 # 1. build a benchmark (downloads public data at build time, nothing raw is committed)

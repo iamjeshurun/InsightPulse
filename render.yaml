@@ -14,7 +14,8 @@ services:
     envVars:
       - key: INSIGHTPULSE_DB
         value: /app/artifacts/insightpulse.db
+      # The dashboard is served same-origin, so "*" is only exercised by
+      # cross-origin API clients; allow_credentials is off in the app.
       - key: INSIGHTPULSE_CORS_ORIGINS
-        sync: false            # set to the Render URL after the first deploy
-      - key: INSIGHTPULSE_ASPECT_MODEL_PATH
-        sync: false            # optional: path to a trained baseline baked into the image
+        value: "*"
+      # Model paths default to the bundled classical baselines (see Dockerfile).

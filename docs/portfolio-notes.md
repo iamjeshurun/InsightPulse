@@ -22,7 +22,7 @@ deployed and the final transformer run lands.
   background jobs, PSI/Jensen-Shannon drift detection, calibration (ECE)
   tracking, and a human-correction feedback loop feeding continuous evaluation;
   ~900 req/s at 12 ms p95 in local load tests; deployed a public demo at
-  `<DEMO_URL>`.
+  https://insightpulse-xlc2.onrender.com.
 
 **Single line:**
 
