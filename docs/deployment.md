@@ -6,11 +6,12 @@ so it runs on any container host.
 
 ## Free-tier public demo (Render)
 
+Live at **https://insightpulse-xlc2.onrender.com**.
+
 1. Push this repo to GitHub.
 2. render.com → **New → Blueprint** → pick the repo. `render.yaml` provisions a
-   free Docker web service.
-3. After the first deploy, set `INSIGHTPULSE_CORS_ORIGINS` to the assigned
-   `https://<name>.onrender.com` origin and redeploy.
+   free Docker web service with the bundled classical models and a permissive
+   CORS policy (the dashboard is served same-origin, so nothing else is needed).
 
 Free-tier facts to expect (and to state on a résumé honestly):
 
