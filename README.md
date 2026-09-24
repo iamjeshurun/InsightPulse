@@ -9,6 +9,20 @@ applied-ML lifecycle, from a reproducible dataset to a monitored service.
 **Live demo:** https://insightpulse-xlc2.onrender.com  ·  API docs at `/docs`  ·  metrics at `/metrics`
 _(free tier — the first request after ~15 min idle takes a few seconds to wake, and the analytics history resets on redeploy)_
 
+## Project evolution
+
+InsightPulse began as a **Flask application** that analyzed user-submitted text
+using **BERT through IBM Watson’s embeddable NLP library**.
+
+I later redesigned it as a customer-feedback analysis platform, expanding the
+scope to include sentiment and aspect analysis, reproducible model evaluation,
+batch processing, and human review. The current implementation uses **FastAPI,
+React, and SQLite**, with Docker-based deployment on **Render**.
+
+The original Flask/Watson application was the first iteration. This repository
+documents the current implementation; references to Flask, Watson NLP, and BERT
+in earlier project descriptions refer to that original version.
+
 ## The problem
 
 "Is this review positive or negative?" is not a useful question on its own. A
