@@ -107,6 +107,7 @@ class ModelService:
                 "label": label,
                 "confidence": score,
                 "probabilities": self._distribution(label, LABELS[task], score),
+                "method": "lexicon",
             }
             for task, (label, score) in raw.items()
         }
@@ -116,7 +117,7 @@ class ModelService:
         for task, model in self._task_models.items():
             for index, prediction in enumerate(model.predict(texts)):
                 if task in prediction:
-                    results[index][task] = prediction[task]
+                    results[index][task] = {**prediction[task], "method": "model"}
         return results
 
     def predict_with_shadow(self, texts: list[str]) -> tuple[list[dict], list[dict] | None]:
