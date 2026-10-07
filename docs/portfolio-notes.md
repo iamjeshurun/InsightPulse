@@ -60,9 +60,13 @@ deployed and the final transformer run lands.
   were rejected, not buried — DeBERTa was actually *worse* on the minority
   classes it was meant to help. The promotion rule is written in
   `docs/part-2-modeling.md`.
-- **Calibration matters for the product.** The aspect baseline's ECE is ~0.23
-  (over-confident); the dashboard's 65%-confidence review queue is the
-  mitigation, and continuous-eval watches agreement with human corrections.
+- **Calibration matters for the product.** The aspect baseline's ECE is ~0.23,
+  and it is *under*-confident: accuracy exceeds stated confidence in every bin
+  above 0.4. The review queue flags aspect confidence below 0.40, a threshold
+  chosen on 2019 validation data (flags ~36% of the 2019 test set, catches ~63%
+  of its errors; on the 2024 case study, 29% and 55%). The earlier 0.65 rule
+  flagged 76% of records, so it was not useful triage. See
+  `docs/case-study-2024.md`.
 - **Domain honesty.** The three benchmarks are three domains; the README says
   so, and `/health` reports which tasks use a trained model vs. the lexicon.
 

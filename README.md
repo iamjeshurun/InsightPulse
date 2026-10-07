@@ -110,7 +110,7 @@ then [docs/benchmark-results.md](docs/benchmark-results.md).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[test]'
-python -m unittest discover -s tests -v          # 29 backend tests
+python -m unittest discover -s tests -v          # 30 backend tests
 
 # API + dashboard — serves the bundled sentiment + aspect models;
 # intent + urgency fall back to a transparent lexicon (GET /health shows which)
