@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from insightpulse_modeling.io import read_jsonl
+from insightpulse_data.io import read_jsonl
 
 
 def _distribution(values: list[str], categories: list[str]) -> list[float]:

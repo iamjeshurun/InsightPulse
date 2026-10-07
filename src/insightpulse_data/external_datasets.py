@@ -8,13 +8,14 @@ by the modeling package.
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import re
 import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
+
+from .io import sha256_file, stable_bucket, write_jsonl
 
 _PLACEHOLDER = re.compile(r"\{\{[^}]*\}\}")
 _NON_ALPHA = re.compile(r"[^a-z0-9 ]+")
@@ -37,19 +38,6 @@ DYNASENT_MEMBERS = {
     "validation": "dynasent-v1.1/dynasent-v1.1-round02-dynabench-dev.jsonl",
     "test": "dynasent-v1.1/dynasent-v1.1-round02-dynabench-test.jsonl",
 }
-
-
-def _write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> int:
-    count = 0
-    with path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-            count += 1
-    return count
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def prepare_dynasent(archive: Path, output_dir: Path) -> dict[str, Any]:
@@ -81,14 +69,14 @@ def prepare_dynasent(archive: Path, output_dir: Path) -> dict[str, Any]:
                             "dataset": "dynasent-v1.1-round02",
                         }
 
-            split_sizes[split] = _write_jsonl(output_dir / f"{split}.jsonl", records())
+            split_sizes[split] = write_jsonl(output_dir / f"{split}.jsonl", records())
             distributions[split] = dict(sorted(labels.items()))
     metadata = {
         "dataset": "DynaSent v1.1 Round 2",
         "source": "https://github.com/cgpotts/dynasent",
         "license": "CC BY 4.0",
         "license_url": "https://creativecommons.org/licenses/by/4.0/",
-        "source_sha256": _sha256(archive),
+        "source_sha256": sha256_file(archive),
         "split_policy": "publisher-provided",
         "split_sizes": split_sizes,
         "label_distributions": distributions,
@@ -98,11 +86,6 @@ def prepare_dynasent(archive: Path, output_dir: Path) -> dict[str, Any]:
         json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     return metadata
-
-
-def _stable_bucket(value: str, seed: int) -> int:
-    digest = hashlib.sha256(f"{seed}:{value}".encode()).hexdigest()
-    return int(digest[:8], 16) % 100
 
 
 def prepare_bitext(source_csv: Path, output_dir: Path, seed: int = 42) -> dict[str, Any]:
@@ -128,7 +111,7 @@ def prepare_bitext(source_csv: Path, output_dir: Path, seed: int = 42) -> dict[s
                 continue
             seen_keys.add(dedupe_key)
             record_id = f"bitext-{index:05d}"
-            bucket = _stable_bucket(key, seed)
+            bucket = stable_bucket(key, seed)
             split = "train" if bucket < 80 else "validation" if bucket < 90 else "test"
             splits[split].append(
                 {
@@ -144,7 +127,7 @@ def prepare_bitext(source_csv: Path, output_dir: Path, seed: int = 42) -> dict[s
             )
             distributions[split][intent] += 1
     split_sizes = {
-        split: _write_jsonl(output_dir / f"{split}.jsonl", splits[split])
+        split: write_jsonl(output_dir / f"{split}.jsonl", splits[split])
         for split in ("train", "validation", "test")
     }
     metadata = {
@@ -152,7 +135,7 @@ def prepare_bitext(source_csv: Path, output_dir: Path, seed: int = 42) -> dict[s
         "source": "https://github.com/bitext/customer-support-llm-chatbot-training-dataset",
         "license": "CDLA-Sharing-1.0",
         "license_url": "https://cdla.dev/sharing-1-0/",
-        "source_sha256": _sha256(source_csv),
+        "source_sha256": sha256_file(source_csv),
         "seed": seed,
         "split_policy": "deterministic 80/10/10 grouped by de-templated request key",
         "dropped_normalized_duplicates": duplicates,

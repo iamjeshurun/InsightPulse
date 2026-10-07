@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from collections import Counter
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any, Iterable
 
 import httpx
 
+from .io import sha256_file, stable_bucket, text_fingerprint
 from .privacy import redact_pii
 
 API_URL = "https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/"
@@ -109,7 +109,7 @@ def fetch_public_complaints(
                     narrative = str(source.get("complaint_what_happened") or "").strip()
                     if not narrative:
                         continue
-                    fingerprint = hashlib.sha256(" ".join(narrative.lower().split()).encode()).hexdigest()
+                    fingerprint = text_fingerprint(narrative)
                     if fingerprint in seen_narratives:
                         duplicate_narratives += 1
                         continue
@@ -150,14 +150,14 @@ def fetch_public_complaints(
         "source": API_URL,
         "license": "CC0",
     }
-    result["output_sha256"] = hashlib.sha256(output_path.read_bytes()).hexdigest()
+    result["output_sha256"] = sha256_file(output_path)
     metadata_path = output_path.with_suffix(output_path.suffix + ".metadata.json")
     metadata_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
 
 def _bucket(identifier: str, seed: int) -> str:
-    value = int(hashlib.sha256(f"{seed}:{identifier}".encode()).hexdigest()[:8], 16) % 100
+    value = stable_bucket(identifier, seed)
     return "train" if value < 80 else "validation" if value < 90 else "test"
 
 
@@ -193,7 +193,7 @@ def prepare_cfpb(source_jsonl: Path, output_dir: Path, seed: int = 42) -> dict[s
     skipped = 0
     for raw in _source_rows(source_jsonl):
         text, found = redact_pii(str(raw.get("narrative") or ""))
-        fingerprint = hashlib.sha256(" ".join(text.lower().split()).encode()).hexdigest()
+        fingerprint = text_fingerprint(text)
         if len(text) < 20 or fingerprint in seen:
             skipped += 1
             continue
@@ -229,7 +229,7 @@ def prepare_cfpb(source_jsonl: Path, output_dir: Path, seed: int = 42) -> dict[s
         "source": API_URL,
         "license": "CC0",
         "seed": seed,
-        "source_sha256": hashlib.sha256(source_jsonl.read_bytes()).hexdigest(),
+        "source_sha256": sha256_file(source_jsonl),
         "split_sizes": {name: len(rows) for name, rows in splits.items()},
         "aspect_distribution": dict(sorted(labels.items())),
         "redactions": dict(sorted(redactions.items())),
