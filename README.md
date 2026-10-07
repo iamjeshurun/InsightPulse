@@ -110,7 +110,7 @@ then [docs/benchmark-results.md](docs/benchmark-results.md).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[test]'
-python -m unittest discover -s tests -v          # 25 backend tests
+python -m unittest discover -s tests -v          # 29 backend tests
 
 # API + dashboard — serves the bundled sentiment + aspect models;
 # intent + urgency fall back to a transparent lexicon (GET /health shows which)
@@ -127,7 +127,8 @@ docker compose --profile observability up --build # + Prometheus :9090 / Grafana
 Rebuild the models from scratch, or train new ones:
 
 ```bash
-# 1. build a benchmark (downloads public data at build time, nothing raw is committed)
+# 1. build a benchmark from CFPB's narratives archive (downloads and caches the
+#    archive export at build time; nothing raw is committed)
 insightpulse-fetch-cfpb --output data/raw/cfpb/complaints-2019-01.jsonl \
   --date-min 2019-01-01 --date-max 2019-02-01 --limit 20000
 insightpulse-prepare-benchmark cfpb --input data/raw/cfpb/complaints-2019-01.jsonl \
@@ -144,6 +145,17 @@ insightpulse-api
 
 `GET /health` reports exactly which tasks are served by a trained model and
 which fall back to the transparent lexicon.
+
+**CFPB narratives end on 2026-08-14.** CFPB stopped publishing complaint
+narratives in its live database and API on that date and moved every previously
+published narrative to a [FOIA narratives archive](https://www.consumerfinance.gov/foia-requests/foia-electronic-reading-room/cfpb-consumer-complaint-database-narratives-archive/).
+`insightpulse-fetch-cfpb` reads that archive, so historical slices still
+rebuild, but no newer narratives exist and requests past the cutoff fail with
+an explanation. Ongoing evaluation on fresh CFPB narratives is not possible.
+
+The dashboard's example is a case study on archived January 1–4, 2024
+complaints; see [docs/case-study-2024.md](docs/case-study-2024.md) for the
+evaluation, including why it is not a held-out test.
 
 ## Input contract
 

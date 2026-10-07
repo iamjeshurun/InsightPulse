@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
+import zipfile
 from collections import Counter
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -13,7 +16,41 @@ import httpx
 from .io import sha256_file, stable_bucket, text_fingerprint
 from .privacy import redact_pii
 
-API_URL = "https://www.consumerfinance.gov/data-research/consumer-complaints/search/api/v1/"
+# CFPB stopped publishing complaint narratives in its live database and API on
+# 2026-08-14 and moved every previously published narrative to a FOIA archive of
+# bulk exports, split by date received. No newer narratives are published.
+ARCHIVE_PAGE_URL = (
+    "https://www.consumerfinance.gov/foia-requests/foia-electronic-reading-room/"
+    "cfpb-consumer-complaint-database-narratives-archive/"
+)
+ARCHIVE_BASE_URL = "https://files.consumerfinance.gov/f/documents/"
+ARCHIVE_FIRST_DATE = date(2011, 12, 1)
+NARRATIVE_CUTOFF = date(2026, 8, 14)
+DEFAULT_ARCHIVE_CACHE = Path("data/raw/cfpb-archive")
+# (file stem, first month received, last month received)
+ARCHIVE_EXPORTS: tuple[tuple[str, str, str], ...] = (
+    ("CCDB_Export_1_December_2011_through_April_2018", "2011-12", "2018-04"),
+    ("CCDB_Export_2_May_2018_through_April_2021", "2018-05", "2021-04"),
+    ("CCDB_Export_3_May_2021_through_October_2022", "2021-05", "2022-10"),
+    ("CCDB_Export_4_November_2022_through_August_2023", "2022-11", "2023-08"),
+    ("CCDB_Export_5_September_2023_through_March_2024", "2023-09", "2024-03"),
+    ("CCDB_Export_6_April_2024_through_July_2024", "2024-04", "2024-07"),
+    ("CCDB_Export_7_August_2024_through_October_2024", "2024-08", "2024-10"),
+    ("CCDB_Export_8_November_2024_through_December_2024", "2024-11", "2024-12"),
+    ("CCDB_Export_9_January_2025_through_February_2025", "2025-01", "2025-02"),
+    ("CCDB_Export_10_March_2025_through_April_2025", "2025-03", "2025-04"),
+    ("CCDB_Export_11_May_2025_through_June_2025", "2025-05", "2025-06"),
+    ("CCDB_Export_12_July_2025_through_August_2025", "2025-07", "2025-08"),
+    ("CCDB_Export_13_September_2025_through_October_2025", "2025-09", "2025-10"),
+    ("CCDB_Export_14_November_2025_through_December_2025", "2025-11", "2025-12"),
+    ("CCDB_Export_15_January_2026_through_February_2026", "2026-01", "2026-02"),
+    ("CCDB_Export_16_March_2026", "2026-03", "2026-03"),
+    ("CCDB_Export_17_April_2026", "2026-04", "2026-04"),
+    ("CCDB_Export_18_May_2026", "2026-05", "2026-05"),
+    ("CCDB_Export_19_June_2026", "2026-06", "2026-06"),
+    ("CCDB_Export_20_July_2026", "2026-07", "2026-07"),
+    ("CCDB_Export_21_August_2026", "2026-08", "2026-08"),
+)
 
 # Ordered rules translate the consumer-selected CFPB issue into a compact
 # business taxonomy. The original issue and sub-issue remain available for
@@ -37,118 +74,139 @@ def classify_aspect(issue: str, sub_issue: str = "", product: str = "") -> str:
     return "other"
 
 
-def _search_after(hit: dict[str, Any]) -> str | None:
-    token = hit.get("sort")
-    if not token:
-        return None
-    return "_".join(str(part) for part in token)
+def _month(value: str) -> tuple[int, int]:
+    year, month = value.split("-")[:2]
+    return int(year), int(month)
 
 
-def fetch_public_complaints(
+def archive_exports_for(date_min: str, date_max: str) -> list[str]:
+    """Archive export files whose received-date months overlap [date_min, date_max)."""
+    start = date.fromisoformat(date_min)
+    end = date.fromisoformat(date_max)
+    if end <= start:
+        raise ValueError("date_max must be after date_min")
+    if start < ARCHIVE_FIRST_DATE:
+        raise ValueError(f"The narratives archive starts at complaints received {ARCHIVE_FIRST_DATE.isoformat()}.")
+    if end > NARRATIVE_CUTOFF + timedelta(days=1):
+        raise ValueError(
+            f"CFPB stopped publishing complaint narratives on {NARRATIVE_CUTOFF.isoformat()}. The archive covers "
+            f"complaints received {ARCHIVE_FIRST_DATE.isoformat()} through {NARRATIVE_CUTOFF.isoformat()}, and no "
+            f"newer narratives are published. Use a date_max of {(NARRATIVE_CUTOFF + timedelta(days=1)).isoformat()} "
+            "or earlier (date_max is exclusive)."
+        )
+    last = end - timedelta(days=1)
+    wanted = []
+    for stem, first_month, last_month in ARCHIVE_EXPORTS:
+        if _month(first_month) <= (last.year, last.month) and (start.year, start.month) <= _month(last_month):
+            wanted.append(stem)
+    return wanted
+
+
+def _download_export(stem: str, cache_dir: Path) -> Path:
+    path = cache_dir / f"{stem}.zip"
+    if path.exists() and zipfile.is_zipfile(path):
+        return path
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    partial = path.with_suffix(".zip.part")
+    with httpx.stream("GET", f"{ARCHIVE_BASE_URL}{stem}.zip", timeout=120, follow_redirects=True) as response:
+        response.raise_for_status()
+        with partial.open("wb") as handle:
+            for chunk in response.iter_bytes():
+                handle.write(chunk)
+    partial.replace(path)
+    return path
+
+
+def _archive_rows(path: Path) -> Iterable[dict[str, str]]:
+    with zipfile.ZipFile(path) as archive:
+        name = next(member for member in archive.namelist() if member.lower().endswith(".csv"))
+        with archive.open(name) as raw:
+            yield from csv.DictReader(io.TextIOWrapper(raw, encoding="utf-8", newline=""))
+
+
+def fetch_archived_complaints(
     output_path: Path,
     *,
     date_min: str,
     date_max: str,
     limit: int = 10_000,
-    page_size: int = 100,
     products: tuple[str, ...] = (),
+    cache_dir: Path = DEFAULT_ARCHIVE_CACHE,
 ) -> dict[str, Any]:
-    """Fetch a date-bounded slice of complaints that carry a public narrative.
+    """Write a date-bounded slice of archived complaint narratives as JSONL.
 
-    Deep pagination uses the CFPB API's ``search_after`` cursor (its ``frm``
-    offset parameter is capped at a single page), so the collector can walk the
-    whole date window.  With no ``products`` filter it pages one time-ordered
-    stream; with one or more it round-robins across them so no single product
-    dominates the sample.
+    Reads CFPB's FOIA narratives archive (narratives published before
+    publication stopped on 2026-08-14). ``date_max`` is exclusive. Records are
+    taken oldest first; with ``products`` they are taken round-robin across those
+    products so no single product dominates. Downloaded exports are cached in
+    ``cache_dir`` and reused.
     """
-    if limit < 1 or not 1 <= page_size <= 100:
-        raise ValueError("limit must be positive and page_size must be between 1 and 100")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fetched = retained = duplicate_narratives = 0
-    seen_narratives: set[str] = set()
-    product_filters: tuple[str | None, ...] = products or (None,)
-    cursors: dict[str | None, str | None] = {product: None for product in product_filters}
-    exhausted: set[str | None] = set()
-    with (
-        httpx.Client(
-            headers={"User-Agent": "InsightPulse/0.7 research"},
-            timeout=60,
-            follow_redirects=True,
-        ) as client,
-        output_path.open("w", encoding="utf-8") as handle,
-    ):
-        while retained < limit and len(exhausted) < len(product_filters):
-            for product_filter in product_filters:
-                if retained >= limit or product_filter in exhausted:
-                    continue
-                params: dict[str, Any] = {
-                    "date_received_min": date_min,
-                    "date_received_max": date_max,
-                    "has_narrative": "true",
-                    "sort": "created_date_asc",
-                    "size": page_size,
-                    "no_aggs": "true",
-                    "no_highlight": "true",
+    if limit < 1:
+        raise ValueError("limit must be positive")
+    stems = archive_exports_for(date_min, date_max)
+    start, end = date.fromisoformat(date_min), date.fromisoformat(date_max)
+    wanted = set(products)
+    by_product: dict[str, list[dict[str, str]]] = {}
+    seen: set[str] = set()
+    scanned = duplicates = 0
+    for stem in stems:
+        for raw in _archive_rows(_download_export(stem, cache_dir)):
+            narrative = (raw.get("Consumer complaint narrative") or "").strip()
+            received = (raw.get("Date received") or "")[:10]
+            if not narrative or not received or not start <= date.fromisoformat(received) < end:
+                continue
+            product = raw.get("Product") or ""
+            if wanted and product not in wanted:
+                continue
+            scanned += 1
+            fingerprint = text_fingerprint(narrative)
+            if fingerprint in seen:
+                duplicates += 1
+                continue
+            seen.add(fingerprint)
+            # Whitelist fields: intentionally omit company, state, ZIP and tags.
+            by_product.setdefault(product if wanted else "", []).append(
+                {
+                    "complaint_id": raw.get("Complaint ID", ""),
+                    "narrative": narrative,
+                    "date_received": received,
+                    "product": product,
+                    "sub_product": raw.get("Sub-product") or "",
+                    "issue": raw.get("Issue") or "",
+                    "sub_issue": raw.get("Sub-issue") or "",
                 }
-                if cursors[product_filter]:
-                    params["search_after"] = cursors[product_filter]
-                if product_filter:
-                    params["product"] = product_filter
-                response = client.get(API_URL, params=params)
-                response.raise_for_status()
-                hits = response.json().get("hits", {}).get("hits", [])
-                if not hits:
-                    exhausted.add(product_filter)
-                    continue
-                cursors[product_filter] = _search_after(hits[-1])
-                fetched += len(hits)
-                if len(hits) < page_size or cursors[product_filter] is None:
-                    exhausted.add(product_filter)
-                for hit in hits:
-                    source = hit.get("_source", {})
-                    narrative = str(source.get("complaint_what_happened") or "").strip()
-                    if not narrative:
-                        continue
-                    fingerprint = text_fingerprint(narrative)
-                    if fingerprint in seen_narratives:
-                        duplicate_narratives += 1
-                        continue
-                    seen_narratives.add(fingerprint)
-                    # Whitelist fields: intentionally omit company, state, ZIP and tags.
-                    row = {
-                        "complaint_id": str(source.get("complaint_id", "")),
-                        "narrative": narrative,
-                        "date_received": str(source.get("date_received", ""))[:10],
-                        "product": str(source.get("product") or ""),
-                        "sub_product": str(source.get("sub_product") or ""),
-                        "issue": str(source.get("issue") or ""),
-                        "sub_issue": str(source.get("sub_issue") or ""),
-                    }
-                    handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
-                    retained += 1
-                    if retained >= limit:
-                        break
+            )
+    queues = [
+        sorted(rows, key=lambda row: (row["date_received"], int(row["complaint_id"] or 0)))
+        for _, rows in sorted(by_product.items())
+    ]
+    selected: list[dict[str, str]] = []
+    position = 0
+    while len(selected) < limit and any(position < len(queue) for queue in queues):
+        for queue in queues:
+            if position < len(queue) and len(selected) < limit:
+                selected.append(queue[position])
+        position += 1
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
+        for row in selected:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     result = {
         "query": {
             "date_received_min": date_min,
-            "date_received_max": date_max,
-            "has_narrative": True,
+            "date_received_max_exclusive": date_max,
             "products": list(products),
-            "sampling": (
-                "round-robin by product, ascending created date"
-                if products
-                else "single stream, ascending created date"
-            ),
-            "page_size": page_size,
-            "pagination": "search_after cursor",
+            "sampling": "round-robin by product, oldest first" if products else "oldest first",
         },
-        "fetched": fetched,
-        "retained_narratives": retained,
+        "archive_exports": stems,
+        "matching_narratives": scanned,
+        "skipped_exact_duplicates": duplicates,
+        "retained_narratives": len(selected),
         "target_narratives": limit,
-        "target_reached": retained >= limit,
-        "skipped_exact_duplicates": duplicate_narratives,
-        "source": API_URL,
-        "license": "CC0",
+        "target_reached": len(selected) >= limit,
+        "source": ARCHIVE_PAGE_URL,
+        "narrative_cutoff": NARRATIVE_CUTOFF.isoformat(),
+        "license": "Public domain (CFPB FOIA reading room)",
     }
     result["output_sha256"] = sha256_file(output_path)
     metadata_path = output_path.with_suffix(output_path.suffix + ".metadata.json")
@@ -226,8 +284,8 @@ def prepare_cfpb(source_jsonl: Path, output_dir: Path, seed: int = 42) -> dict[s
                 handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     metadata = {
         "dataset": "CFPB public consumer complaint narratives",
-        "source": API_URL,
-        "license": "CC0",
+        "source": ARCHIVE_PAGE_URL,
+        "license": "Public domain (CFPB FOIA reading room)",
         "seed": seed,
         "source_sha256": sha256_file(source_jsonl),
         "split_sizes": {name: len(rows) for name, rows in splits.items()},

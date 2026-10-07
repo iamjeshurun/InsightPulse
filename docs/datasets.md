@@ -64,25 +64,29 @@ only to original InsightPulse code and documentation.
   reporting, debt collection, fees and interest, fraud and security, loan
   servicing, payments, and other. Categories with inadequate support are
   merged into `other` before evaluation.
-- Source: the U.S. Consumer Financial Protection Bureau public API.
-- License reported by the API: CC0.
+- Source: the U.S. Consumer Financial Protection Bureau. CFPB stopped publishing
+  narratives in its live database and API on 2026-08-14; previously published
+  narratives (complaints received 2011-12-01 through 2026-08-14) are in its
+  [FOIA narratives archive](https://www.consumerfinance.gov/foia-requests/foia-electronic-reading-room/cfpb-consumer-complaint-database-narratives-archive/)
+  as bulk exports split by date received. `insightpulse-fetch-cfpb` downloads
+  the needed export(s), caches them in `data/raw/cfpb-archive/`, and refuses
+  dates after the cutoff. No ongoing narrative updates are available.
+- License: public domain (CFPB; the API previously reported CC0).
 - Labels: deterministic groupings of the consumer-selected `issue`,
   `sub_issue`, and `product` fields. They are traceable weak supervision, not
   AI-generated annotations.
 - Privacy: only complaint ID, narrative, date, product, and issue fields are
   downloaded. Company, state, ZIP code, and demographic tags are excluded.
   InsightPulse performs a second pass of PII redaction before modeling.
-- Sampling: fixed dates, ascending created-date order, `search_after` cursor
-  pagination (the API caps `frm` offsets at one page), exact narrative
-  deduplication during collection. With no product filter the collector walks
-  the entire date window; product filters switch it to round-robin.
+- Sampling: fixed received dates (`--date-max` is exclusive), oldest first,
+  exact narrative deduplication. With no product filter the slice is every
+  archived narrative in the window; product filters switch it to round-robin.
 
 The measured baseline is every complaint with a public narrative whose
 `date_received` falls in January 2019 — 8,911 narratives, 8,124 after exact
-deduplication. Because CFPB keeps revising historical records, the fetched file
-is checksummed at build time (`<output>.metadata.json`) rather than pinned to a
-number here; re-running the command below reproduces the splits within a few
-records. Raw text is not committed.
+deduplication, fetched from the live API in September 2026 before narratives
+were withdrawn. Rebuilding from the archive may differ by a few records; the
+fetched file is checksummed (`<output>.metadata.json`). Raw text is not committed.
 
 The CFPB states that narratives are unverified and reflect one side of a
 dispute. They are therefore inappropriate for ranking companies or asserting
