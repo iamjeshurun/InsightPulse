@@ -56,3 +56,18 @@ class ModelingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TopTermsTests(unittest.TestCase):
+    def test_top_terms_are_the_words_that_drove_the_label(self):
+        records = [
+            {"text": "late fee charged on my card", "aspect": "fees_interest"},
+            {"text": "another fee and high interest", "aspect": "fees_interest"},
+            {"text": "cannot log in to my account", "aspect": "account_access"},
+            {"text": "account locked after password reset", "aspect": "account_access"},
+        ]
+        suite = BaselineSuite(BaselineConfig(tasks=("aspect",))).fit(records)
+        terms = suite.top_terms("they charged a fee twice", "aspect", "fees_interest")
+        self.assertEqual(terms[0][0], "fee")
+        self.assertTrue(all(score > 0 for _, score in terms))
+        self.assertEqual(suite.top_terms("anything", "missing_task", "fees_interest"), [])

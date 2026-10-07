@@ -1,0 +1,1249 @@
+{
+  "kind": "example",
+  "title": "Archived CFPB complaint narratives, January 1–4, 2024",
+  "generated_at": "2026-10-07",
+  "model": {
+    "name": "Theme (aspect) classifier",
+    "family": "TF-IDF + logistic regression",
+    "file": "models/cfpb-aspect.joblib",
+    "trained_on": "CFPB complaints received January 2019"
+  },
+  "dataset": {
+    "name": "CFPB Consumer Complaint Database narratives archive",
+    "source": "https://www.consumerfinance.gov/foia-requests/foia-electronic-reading-room/cfpb-consumer-complaint-database-narratives-archive/",
+    "license": "Public domain (CFPB FOIA reading room)",
+    "date_range": [
+      "2024-01-01",
+      "2024-01-04"
+    ],
+    "archived_narratives": 4043,
+    "excluded_previously_inspected": 462,
+    "examples": 3581,
+    "duplicates_removed": 1493,
+    "narrative_cutoff": "2026-08-14"
+  },
+  "evaluation_type": "case study, not a held-out test",
+  "reference_labels": "CFPB categories derived from the issue each consumer selected. Useful reference labels, not infallible ground truth.",
+  "results": {
+    "2019_test": {
+      "n": 843,
+      "accuracy": 0.721,
+      "accuracy_95ci": [
+        0.691,
+        0.752
+      ],
+      "macro_f1": 0.642,
+      "majority_class": "credit_reporting",
+      "majority_baseline": 0.355,
+      "per_class": {
+        "account_access": {
+          "n": 53,
+          "share": 0.0629,
+          "predicted": 64,
+          "precision": 0.531,
+          "recall": 0.642,
+          "f1": 0.581
+        },
+        "credit_reporting": {
+          "n": 299,
+          "share": 0.3547,
+          "predicted": 271,
+          "precision": 0.904,
+          "recall": 0.819,
+          "f1": 0.86
+        },
+        "debt_collection": {
+          "n": 140,
+          "share": 0.1661,
+          "predicted": 146,
+          "precision": 0.774,
+          "recall": 0.807,
+          "f1": 0.79
+        },
+        "fees_interest": {
+          "n": 37,
+          "share": 0.0439,
+          "predicted": 35,
+          "precision": 0.514,
+          "recall": 0.486,
+          "f1": 0.5
+        },
+        "fraud_security": {
+          "n": 44,
+          "share": 0.0522,
+          "predicted": 44,
+          "precision": 0.455,
+          "recall": 0.455,
+          "f1": 0.455
+        },
+        "loan_servicing": {
+          "n": 96,
+          "share": 0.1139,
+          "predicted": 111,
+          "precision": 0.613,
+          "recall": 0.708,
+          "f1": 0.657
+        },
+        "other": {
+          "n": 65,
+          "share": 0.0771,
+          "predicted": 84,
+          "precision": 0.631,
+          "recall": 0.815,
+          "f1": 0.711
+        },
+        "payments": {
+          "n": 109,
+          "share": 0.1293,
+          "predicted": 88,
+          "precision": 0.648,
+          "recall": 0.523,
+          "f1": 0.579
+        }
+      },
+      "confusion": {
+        "account_access": {
+          "account_access": 34,
+          "credit_reporting": 1,
+          "debt_collection": 0,
+          "fees_interest": 2,
+          "fraud_security": 1,
+          "loan_servicing": 0,
+          "other": 9,
+          "payments": 6
+        },
+        "credit_reporting": {
+          "account_access": 1,
+          "credit_reporting": 245,
+          "debt_collection": 21,
+          "fees_interest": 1,
+          "fraud_security": 13,
+          "loan_servicing": 8,
+          "other": 5,
+          "payments": 5
+        },
+        "debt_collection": {
+          "account_access": 1,
+          "credit_reporting": 15,
+          "debt_collection": 113,
+          "fees_interest": 0,
+          "fraud_security": 4,
+          "loan_servicing": 6,
+          "other": 0,
+          "payments": 1
+        },
+        "fees_interest": {
+          "account_access": 3,
+          "credit_reporting": 0,
+          "debt_collection": 1,
+          "fees_interest": 18,
+          "fraud_security": 0,
+          "loan_servicing": 8,
+          "other": 6,
+          "payments": 1
+        },
+        "fraud_security": {
+          "account_access": 5,
+          "credit_reporting": 7,
+          "debt_collection": 2,
+          "fees_interest": 1,
+          "fraud_security": 20,
+          "loan_servicing": 0,
+          "other": 7,
+          "payments": 2
+        },
+        "loan_servicing": {
+          "account_access": 0,
+          "credit_reporting": 3,
+          "debt_collection": 6,
+          "fees_interest": 5,
+          "fraud_security": 0,
+          "loan_servicing": 68,
+          "other": 1,
+          "payments": 13
+        },
+        "other": {
+          "account_access": 5,
+          "credit_reporting": 0,
+          "debt_collection": 0,
+          "fees_interest": 2,
+          "fraud_security": 1,
+          "loan_servicing": 1,
+          "other": 53,
+          "payments": 3
+        },
+        "payments": {
+          "account_access": 15,
+          "credit_reporting": 0,
+          "debt_collection": 3,
+          "fees_interest": 6,
+          "fraud_security": 5,
+          "loan_servicing": 20,
+          "other": 3,
+          "payments": 57
+        }
+      },
+      "calibration": {
+        "ece": 0.225,
+        "bins": [
+          {
+            "range": [
+              0.1,
+              0.2
+            ],
+            "n": 11,
+            "accuracy": 0.364,
+            "confidence": 0.182
+          },
+          {
+            "range": [
+              0.2,
+              0.3
+            ],
+            "n": 132,
+            "accuracy": 0.523,
+            "confidence": 0.258
+          },
+          {
+            "range": [
+              0.3,
+              0.4
+            ],
+            "n": 161,
+            "accuracy": 0.509,
+            "confidence": 0.347
+          },
+          {
+            "range": [
+              0.4,
+              0.5
+            ],
+            "n": 151,
+            "accuracy": 0.722,
+            "confidence": 0.443
+          },
+          {
+            "range": [
+              0.5,
+              0.6
+            ],
+            "n": 128,
+            "accuracy": 0.812,
+            "confidence": 0.55
+          },
+          {
+            "range": [
+              0.6,
+              0.7
+            ],
+            "n": 110,
+            "accuracy": 0.9,
+            "confidence": 0.645
+          },
+          {
+            "range": [
+              0.7,
+              0.8
+            ],
+            "n": 95,
+            "accuracy": 0.905,
+            "confidence": 0.744
+          },
+          {
+            "range": [
+              0.8,
+              0.9
+            ],
+            "n": 39,
+            "accuracy": 1.0,
+            "confidence": 0.843
+          },
+          {
+            "range": [
+              0.9,
+              1.0
+            ],
+            "n": 16,
+            "accuracy": 1.0,
+            "confidence": 0.926
+          }
+        ]
+      }
+    },
+    "2024_case": {
+      "n": 3581,
+      "accuracy": 0.768,
+      "accuracy_95ci": [
+        0.754,
+        0.782
+      ],
+      "macro_f1": 0.556,
+      "majority_class": "credit_reporting",
+      "majority_baseline": 0.64,
+      "per_class": {
+        "account_access": {
+          "n": 178,
+          "share": 0.0497,
+          "predicted": 200,
+          "precision": 0.51,
+          "recall": 0.573,
+          "f1": 0.54
+        },
+        "credit_reporting": {
+          "n": 2293,
+          "share": 0.6403,
+          "predicted": 2307,
+          "precision": 0.895,
+          "recall": 0.901,
+          "f1": 0.898
+        },
+        "debt_collection": {
+          "n": 416,
+          "share": 0.1162,
+          "predicted": 362,
+          "precision": 0.619,
+          "recall": 0.538,
+          "f1": 0.576
+        },
+        "fees_interest": {
+          "n": 44,
+          "share": 0.0123,
+          "predicted": 70,
+          "precision": 0.357,
+          "recall": 0.568,
+          "f1": 0.439
+        },
+        "fraud_security": {
+          "n": 112,
+          "share": 0.0313,
+          "predicted": 152,
+          "precision": 0.204,
+          "recall": 0.277,
+          "f1": 0.235
+        },
+        "loan_servicing": {
+          "n": 94,
+          "share": 0.0262,
+          "predicted": 122,
+          "precision": 0.541,
+          "recall": 0.702,
+          "f1": 0.611
+        },
+        "other": {
+          "n": 233,
+          "share": 0.0651,
+          "predicted": 215,
+          "precision": 0.693,
+          "recall": 0.639,
+          "f1": 0.665
+        },
+        "payments": {
+          "n": 211,
+          "share": 0.0589,
+          "predicted": 153,
+          "precision": 0.575,
+          "recall": 0.417,
+          "f1": 0.484
+        }
+      },
+      "confusion": {
+        "account_access": {
+          "account_access": 102,
+          "credit_reporting": 6,
+          "debt_collection": 3,
+          "fees_interest": 10,
+          "fraud_security": 17,
+          "loan_servicing": 1,
+          "other": 25,
+          "payments": 14
+        },
+        "credit_reporting": {
+          "account_access": 10,
+          "credit_reporting": 2065,
+          "debt_collection": 99,
+          "fees_interest": 6,
+          "fraud_security": 64,
+          "loan_servicing": 18,
+          "other": 10,
+          "payments": 21
+        },
+        "debt_collection": {
+          "account_access": 3,
+          "credit_reporting": 153,
+          "debt_collection": 224,
+          "fees_interest": 7,
+          "fraud_security": 12,
+          "loan_servicing": 6,
+          "other": 6,
+          "payments": 5
+        },
+        "fees_interest": {
+          "account_access": 7,
+          "credit_reporting": 0,
+          "debt_collection": 1,
+          "fees_interest": 25,
+          "fraud_security": 1,
+          "loan_servicing": 2,
+          "other": 5,
+          "payments": 3
+        },
+        "fraud_security": {
+          "account_access": 8,
+          "credit_reporting": 41,
+          "debt_collection": 25,
+          "fees_interest": 1,
+          "fraud_security": 31,
+          "loan_servicing": 0,
+          "other": 3,
+          "payments": 3
+        },
+        "loan_servicing": {
+          "account_access": 1,
+          "credit_reporting": 4,
+          "debt_collection": 5,
+          "fees_interest": 1,
+          "fraud_security": 2,
+          "loan_servicing": 66,
+          "other": 1,
+          "payments": 14
+        },
+        "other": {
+          "account_access": 15,
+          "credit_reporting": 35,
+          "debt_collection": 2,
+          "fees_interest": 8,
+          "fraud_security": 17,
+          "loan_servicing": 2,
+          "other": 149,
+          "payments": 5
+        },
+        "payments": {
+          "account_access": 54,
+          "credit_reporting": 3,
+          "debt_collection": 3,
+          "fees_interest": 12,
+          "fraud_security": 8,
+          "loan_servicing": 27,
+          "other": 16,
+          "payments": 88
+        }
+      },
+      "calibration": {
+        "ece": 0.226,
+        "bins": [
+          {
+            "range": [
+              0.1,
+              0.2
+            ],
+            "n": 64,
+            "accuracy": 0.234,
+            "confidence": 0.182
+          },
+          {
+            "range": [
+              0.2,
+              0.3
+            ],
+            "n": 406,
+            "accuracy": 0.505,
+            "confidence": 0.256
+          },
+          {
+            "range": [
+              0.3,
+              0.4
+            ],
+            "n": 563,
+            "accuracy": 0.629,
+            "confidence": 0.35
+          },
+          {
+            "range": [
+              0.4,
+              0.5
+            ],
+            "n": 523,
+            "accuracy": 0.753,
+            "confidence": 0.45
+          },
+          {
+            "range": [
+              0.5,
+              0.6
+            ],
+            "n": 580,
+            "accuracy": 0.845,
+            "confidence": 0.551
+          },
+          {
+            "range": [
+              0.6,
+              0.7
+            ],
+            "n": 564,
+            "accuracy": 0.906,
+            "confidence": 0.65
+          },
+          {
+            "range": [
+              0.7,
+              0.8
+            ],
+            "n": 462,
+            "accuracy": 0.866,
+            "confidence": 0.748
+          },
+          {
+            "range": [
+              0.8,
+              0.9
+            ],
+            "n": 356,
+            "accuracy": 0.893,
+            "confidence": 0.846
+          },
+          {
+            "range": [
+              0.9,
+              1.0
+            ],
+            "n": 63,
+            "accuracy": 1.0,
+            "confidence": 0.925
+          }
+        ]
+      }
+    },
+    "class_mix_expected_accuracy": 0.773,
+    "label_rules_unchanged": true
+  },
+  "transformers_2019": {
+    "best_macro_f1": 0.564,
+    "models_tried": 3,
+    "source": "docs/benchmark-results.md"
+  },
+  "products": {
+    "Credit reporting or other personal consumer reports": {
+      "n": 2303,
+      "accuracy": 0.894
+    },
+    "Debt collection": {
+      "n": 459,
+      "accuracy": 0.519
+    },
+    "Credit card": {
+      "n": 284,
+      "accuracy": 0.535
+    },
+    "Checking or savings account": {
+      "n": 234,
+      "accuracy": 0.526
+    },
+    "Student loan": {
+      "n": 105,
+      "accuracy": 0.59
+    },
+    "Mortgage": {
+      "n": 73,
+      "accuracy": 0.808
+    },
+    "Prepaid card": {
+      "n": 63,
+      "accuracy": 0.603
+    },
+    "Money transfer, virtual currency, or money service": {
+      "n": 30,
+      "accuracy": 0.333
+    },
+    "Vehicle loan or lease": {
+      "n": 16,
+      "accuracy": 0.438
+    },
+    "Debt or credit management": {
+      "n": 10,
+      "accuracy": 0.1
+    },
+    "Payday loan, title loan, personal loan, or advance loan": {
+      "n": 4,
+      "accuracy": 0.25
+    }
+  },
+  "review": {
+    "chosen_on": "2019 validation split",
+    "rule": "maximise share of errors caught minus share flagged",
+    "validation_2019": {
+      "threshold": 0.4,
+      "flagged_share": 0.351,
+      "errors_caught_share": 0.627,
+      "accuracy_unflagged": 0.84,
+      "unflagged_n": 514
+    },
+    "test_2019": {
+      "threshold": 0.4,
+      "flagged_share": 0.361,
+      "errors_caught_share": 0.634,
+      "accuracy_unflagged": 0.84,
+      "unflagged_n": 539
+    },
+    "case_2024": {
+      "threshold": 0.4,
+      "flagged_share": 0.288,
+      "errors_caught_share": 0.552,
+      "accuracy_unflagged": 0.854,
+      "unflagged_n": 2548
+    },
+    "current_rule_0_65": {
+      "test_2019": {
+        "threshold": 0.65,
+        "flagged_share": 0.763,
+        "errors_caught_share": 0.953,
+        "accuracy_unflagged": 0.945,
+        "unflagged_n": 200
+      },
+      "case_2024": {
+        "threshold": 0.65,
+        "flagged_share": 0.673,
+        "errors_caught_share": 0.851,
+        "accuracy_unflagged": 0.894,
+        "unflagged_n": 1172
+      }
+    }
+  },
+  "evidence": {
+    "account_access": [
+      {
+        "id": "8092797",
+        "date": "2024-01-03",
+        "product": "Checking or savings account",
+        "issue": "Closing an account",
+        "cfpb_label": "account_access",
+        "model_label": "account_access",
+        "confidence": 0.791,
+        "excerpt": "I open the claim with cfpb now they closed my account for no reason and are holding [redacted] from my savings account I got papers in the mail from boa saying they are closing the account and today I received my statement saying I have [redacted] in my account and wont give it at the bank or any …",
+        "terms": [
+          [
+            "bank",
+            0.26
+          ],
+          [
+            "closed",
+            0.23
+          ],
+          [
+            "account",
+            0.22
+          ],
+          [
+            "savings",
+            0.17
+          ]
+        ]
+      },
+      {
+        "id": "8100245",
+        "date": "2024-01-03",
+        "product": "Checking or savings account",
+        "issue": "Managing an account",
+        "cfpb_label": "account_access",
+        "model_label": "account_access",
+        "confidence": 0.76,
+        "excerpt": "On [redacted] 2023, at [redacted] ; [redacted] , I entered the Citibank branch [redacted] at [redacted] IL [redacted] to use the ATM. I withdrew $ [redacted] from my checking account., Upon completing the transaction, a man wearing a mask and sunglasses tapped my arm, and pointed to a [redacted] $ …",
+        "terms": [
+          [
+            "checking",
+            0.3
+          ],
+          [
+            "atm",
+            0.16
+          ],
+          [
+            "bank",
+            0.13
+          ],
+          [
+            "closed",
+            0.11
+          ]
+        ]
+      }
+    ],
+    "credit_reporting": [
+      {
+        "id": "8096756",
+        "date": "2024-01-04",
+        "product": "Credit reporting or other personal consumer reports",
+        "issue": "Improper use of your report",
+        "cfpb_label": "credit_reporting",
+        "model_label": "credit_reporting",
+        "confidence": 0.972,
+        "excerpt": "I have inquiries on my credit report. Inquiries [redacted]",
+        "terms": [
+          [
+            "inquiries",
+            1.04
+          ],
+          [
+            "report",
+            0.47
+          ],
+          [
+            "my credit",
+            0.34
+          ]
+        ]
+      },
+      {
+        "id": "8093344",
+        "date": "2024-01-02",
+        "product": "Credit reporting or other personal consumer reports",
+        "issue": "Improper use of your report",
+        "cfpb_label": "credit_reporting",
+        "model_label": "credit_reporting",
+        "confidence": 0.954,
+        "excerpt": "Hard inquiries were made to the following Credit bureau agencies including [redacted] and Equifax. [redacted]",
+        "terms": [
+          [
+            "equifax",
+            0.56
+          ],
+          [
+            "inquiries",
+            0.39
+          ],
+          [
+            "hard",
+            0.23
+          ],
+          [
+            "credit",
+            0.21
+          ]
+        ]
+      }
+    ],
+    "debt_collection": [
+      {
+        "id": "8101099",
+        "date": "2024-01-03",
+        "product": "Debt collection",
+        "issue": "Attempts to collect debt not owed",
+        "cfpb_label": "debt_collection",
+        "model_label": "debt_collection",
+        "confidence": 0.948,
+        "excerpt": "Portfolio Recovery placed a collection on my credit report. I asked for that debt to be validated. This company has not validated the debt and continues to report it and call my phone. …",
+        "terms": [
+          [
+            "debt",
+            0.92
+          ],
+          [
+            "collection",
+            0.24
+          ],
+          [
+            "recovery",
+            0.13
+          ],
+          [
+            "credit report",
+            0.13
+          ]
+        ]
+      },
+      {
+        "id": "8094669",
+        "date": "2024-01-02",
+        "product": "Debt collection",
+        "issue": "Attempts to collect debt not owed",
+        "cfpb_label": "debt_collection",
+        "model_label": "debt_collection",
+        "confidence": 0.947,
+        "excerpt": "This debt is not owed, the debt was paid in full. No written notice of the debt was ever received. The collection account is fraudulent.",
+        "terms": [
+          [
+            "debt",
+            1.39
+          ],
+          [
+            "collection",
+            0.46
+          ],
+          [
+            "owed",
+            0.24
+          ],
+          [
+            "in full",
+            0.11
+          ]
+        ]
+      }
+    ],
+    "fees_interest": [
+      {
+        "id": "8109687",
+        "date": "2024-01-04",
+        "product": "Credit card",
+        "issue": "Fees or interest",
+        "cfpb_label": "fees_interest",
+        "model_label": "fees_interest",
+        "confidence": 0.845,
+        "excerpt": "My experience with Barclays which issues the [redacted] card was really bad. The [redacted] % ARP promotion that I initiated was not fulfilled yet the transfer was completed at the full interest rate and a 5 % fee. The reason given was that the check was used after the date specified. …",
+        "terms": [
+          [
+            "fee",
+            0.65
+          ],
+          [
+            "interest",
+            0.4
+          ],
+          [
+            "balance",
+            0.24
+          ],
+          [
+            "apr",
+            0.24
+          ]
+        ]
+      },
+      {
+        "id": "8105550",
+        "date": "2024-01-04",
+        "product": "Checking or savings account",
+        "issue": "Problem caused by your funds being low",
+        "cfpb_label": "fees_interest",
+        "model_label": "fees_interest",
+        "confidence": 0.823,
+        "excerpt": "On [redacted] 2024 my checking [CUSTOMER_ID] overdrawn. US Bank then issued an alert on [redacted] , 2024 stating that I needed to deposit a specified amount by [redacted] 2024 to be eligible to have the $100.00 in overdraft fees waived ( [redacted] $36.00 fees ). …",
+        "terms": [
+          [
+            "fees",
+            0.58
+          ],
+          [
+            "overdraft",
+            0.43
+          ],
+          [
+            "deposit",
+            0.14
+          ],
+          [
+            "00",
+            0.14
+          ]
+        ]
+      }
+    ],
+    "fraud_security": [
+      {
+        "id": "8098551",
+        "date": "2024-01-03",
+        "product": "Credit reporting or other personal consumer reports",
+        "issue": "Credit monitoring or identity theft protection services",
+        "cfpb_label": "fraud_security",
+        "model_label": "fraud_security",
+        "confidence": 0.714,
+        "excerpt": "I was a victim of Identity Theft when my data was stolen from [redacted] . A fraudulent [CUSTOMER_ID] my name and social security was opened by an unknown person at [redacted] . …",
+        "terms": [
+          [
+            "identity",
+            0.39
+          ],
+          [
+            "theft",
+            0.25
+          ],
+          [
+            "report",
+            0.11
+          ],
+          [
+            "opened",
+            0.11
+          ]
+        ]
+      },
+      {
+        "id": "8089235",
+        "date": "2024-01-02",
+        "product": "Debt collection",
+        "issue": "Attempts to collect debt not owed",
+        "cfpb_label": "fraud_security",
+        "model_label": "fraud_security",
+        "confidence": 0.699,
+        "excerpt": "I have reported this account as fraud several times. In [redacted] i did not open any credit account and i remeber having issues with identity theft.",
+        "terms": [
+          [
+            "identity",
+            0.48
+          ],
+          [
+            "fraud",
+            0.32
+          ],
+          [
+            "theft",
+            0.3
+          ],
+          [
+            "open",
+            0.23
+          ]
+        ]
+      }
+    ],
+    "loan_servicing": [
+      {
+        "id": "8093151",
+        "date": "2024-01-02",
+        "product": "Mortgage",
+        "issue": "Struggling to pay mortgage",
+        "cfpb_label": "loan_servicing",
+        "model_label": "loan_servicing",
+        "confidence": 0.812,
+        "excerpt": "I purchased my primary home in [redacted] for [redacted] , I was in a pre foreclosure status and asked for assistance with my home payments in [redacted] . They said there was nothing they could do, but once I hit a 90 day late more options for help would become available to me. …",
+        "terms": [
+          [
+            "modification",
+            0.28
+          ],
+          [
+            "foreclosure",
+            0.24
+          ],
+          [
+            "loan",
+            0.18
+          ],
+          [
+            "income",
+            0.16
+          ]
+        ]
+      },
+      {
+        "id": "8098416",
+        "date": "2024-01-03",
+        "product": "Mortgage",
+        "issue": "Applying for a mortgage or refinancing an existing mortgage",
+        "cfpb_label": "loan_servicing",
+        "model_label": "loan_servicing",
+        "confidence": 0.705,
+        "excerpt": "FACTS [redacted] . An application for a joint refinance was submitted without my knowledge or approval. Borrowers [redacted] and [redacted] . When I requested a copy of the application that was used for the loan I was sent an incomplete copy of an application which contained no signaures. …",
+        "terms": [
+          [
+            "loan",
+            0.43
+          ],
+          [
+            "application",
+            0.22
+          ],
+          [
+            "refinance",
+            0.16
+          ],
+          [
+            "documents",
+            0.11
+          ]
+        ]
+      }
+    ],
+    "other": [
+      {
+        "id": "8102670",
+        "date": "2024-01-04",
+        "product": "Credit card",
+        "issue": "Other features, terms, or problems",
+        "cfpb_label": "other",
+        "model_label": "other",
+        "confidence": 0.79,
+        "excerpt": "Dear CFPB, I hope this message finds you well. I am writing to file a formal complaint regarding the declined offer for the Amex [redacted] Credit Card, despite meeting all specified requirements. …",
+        "terms": [
+          [
+            "card",
+            0.54
+          ],
+          [
+            "amex",
+            0.3
+          ],
+          [
+            "membership",
+            0.17
+          ],
+          [
+            "points",
+            0.15
+          ]
+        ]
+      },
+      {
+        "id": "8091548",
+        "date": "2024-01-02",
+        "product": "Prepaid card",
+        "issue": "Trouble using the card",
+        "cfpb_label": "other",
+        "model_label": "other",
+        "confidence": 0.784,
+        "excerpt": "A $100.00 gift card for American Express was purchased on [redacted] 2023. [redacted] and [redacted] of [redacted] several attempts to purchase items on [redacted] failed to go through. Several more attempts to link the card to my [redacted] and [redacted] account had failed as well. …",
+        "terms": [
+          [
+            "card",
+            0.67
+          ],
+          [
+            "american express",
+            0.27
+          ],
+          [
+            "spend",
+            0.15
+          ],
+          [
+            "use",
+            0.12
+          ]
+        ]
+      }
+    ],
+    "payments": [
+      {
+        "id": "8092608",
+        "date": "2024-01-03",
+        "product": "Mortgage",
+        "issue": "Trouble during payment process",
+        "cfpb_label": "payments",
+        "model_label": "payments",
+        "confidence": 0.837,
+        "excerpt": "I have called numerous times about this issue as well as sent more than [redacted] letters on the topic ( sending a [redacted] letter this evening ). [redacted] approved a forbearance on my mortgage during [redacted] in [redacted] and payments started back [redacted] . …",
+        "terms": [
+          [
+            "mortgage",
+            0.47
+          ],
+          [
+            "escrow",
+            0.42
+          ],
+          [
+            "payment",
+            0.26
+          ],
+          [
+            "taxes",
+            0.16
+          ]
+        ]
+      },
+      {
+        "id": "8102388",
+        "date": "2024-01-03",
+        "product": "Mortgage",
+        "issue": "Trouble during payment process",
+        "cfpb_label": "payments",
+        "model_label": "payments",
+        "confidence": 0.798,
+        "excerpt": "I called in on [redacted] to discuss my mortgage and escrow amounts in detail for at least 30-45minutes. On [redacted] I receive a copy of my settlement statement from [redacted] , this does not answer my questions. …",
+        "terms": [
+          [
+            "escrow",
+            0.46
+          ],
+          [
+            "mortgage",
+            0.34
+          ],
+          [
+            "payment",
+            0.25
+          ],
+          [
+            "shortage",
+            0.11
+          ]
+        ]
+      }
+    ]
+  },
+  "disagreements": [
+    {
+      "id": "8092724",
+      "date": "2024-01-03",
+      "product": "Credit reporting or other personal consumer reports",
+      "issue": "Incorrect information on your report",
+      "cfpb_label": "credit_reporting",
+      "model_label": "debt_collection",
+      "confidence": 0.881,
+      "excerpt": "Back in [redacted] of 2023, I received a bill from Paramount Recovery Systems in the amount of $820.00. I knew I was not responsible for such a debt after repeatedly checking back with the hospitals I received medical care at. …",
+      "terms": [
+        [
+          "debt",
+          0.54
+        ],
+        [
+          "bill",
+          0.18
+        ],
+        [
+          "recovery",
+          0.17
+        ],
+        [
+          "systems",
+          0.12
+        ]
+      ]
+    },
+    {
+      "id": "8099929",
+      "date": "2024-01-03",
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "cfpb_label": "fraud_security",
+      "model_label": "credit_reporting",
+      "confidence": 0.865,
+      "excerpt": "My information was sold and bought illegally because I was a victim of the Equifax ' data breach. I want these items Deleted from my credit reports effective immediately. I am attaching proof that Equifax has admitted that I was a fact a victim of this data breach and Equifax has done nothing. …",
+      "terms": [
+        [
+          "equifax",
+          0.54
+        ],
+        [
+          "inquiry",
+          0.3
+        ],
+        [
+          "credit",
+          0.2
+        ],
+        [
+          "score",
+          0.13
+        ]
+      ]
+    },
+    {
+      "id": "8109320",
+      "date": "2024-01-04",
+      "product": "Debt collection",
+      "issue": "Written notification about debt",
+      "cfpb_label": "debt_collection",
+      "model_label": "credit_reporting",
+      "confidence": 0.857,
+      "excerpt": "The fraudulent accounts in question have not been acknowledged or authorized by me, and their inclusion on my credit report is a direct violation of the Fair Credit Reporting Act ( FCRA ). I have been a victim of identity theft, resulting in fraudulent accounts tarnishing my credit history. …",
+      "terms": [
+        [
+          "removed",
+          0.13
+        ],
+        [
+          "credit",
+          0.12
+        ],
+        [
+          "delete",
+          0.12
+        ],
+        [
+          "accounts",
+          0.11
+        ]
+      ]
+    },
+    {
+      "id": "8094987",
+      "date": "2024-01-02",
+      "product": "Credit card",
+      "issue": "Improper use of your report",
+      "cfpb_label": "other",
+      "model_label": "credit_reporting",
+      "confidence": 0.832,
+      "excerpt": "I noticed there were some unauthorized inquiries on my credit report therefore I reported it to TransUnion but as of today no action has been taken i need them removed asap. …",
+      "terms": [
+        [
+          "transunion",
+          0.31
+        ],
+        [
+          "inquiries",
+          0.27
+        ],
+        [
+          "report",
+          0.2
+        ],
+        [
+          "my credit",
+          0.15
+        ]
+      ]
+    },
+    {
+      "id": "8097789",
+      "date": "2024-01-03",
+      "product": "Debt or credit management",
+      "issue": "Unauthorized withdrawals or charges",
+      "cfpb_label": "fraud_security",
+      "model_label": "debt_collection",
+      "confidence": 0.808,
+      "excerpt": "I am not liable for this debt with [redacted] . i do not have a contract with LVNV FUNDING LLC. they did not provide me with the original contract as requested.",
+      "terms": [
+        [
+          "debt",
+          0.64
+        ],
+        [
+          "contract",
+          0.3
+        ],
+        [
+          "llc",
+          0.17
+        ],
+        [
+          "funding",
+          0.16
+        ]
+      ]
+    },
+    {
+      "id": "8101057",
+      "date": "2024-01-03",
+      "product": "Credit card",
+      "issue": "Closing your account",
+      "cfpb_label": "account_access",
+      "model_label": "other",
+      "confidence": 0.72,
+      "excerpt": "Approved for a Best Egg credit card 2 months ago and it never arrived, waited 3 weeks, nothing. Called their [CUSTOMER_ID] to cancel the card and they assured me it was cancelled. They just reported it to [redacted] as a new account! They obviously did not cancel the account.",
+      "terms": [
+        [
+          "card",
+          0.78
+        ],
+        [
+          "approved",
+          0.13
+        ],
+        [
+          "credit",
+          0.09
+        ],
+        [
+          "cancel",
+          0.09
+        ]
+      ]
+    }
+  ],
+  "excluded_claims": {
+    "sentiment": "Not shown: the sentiment model was trained on general reviews, and on complaints it labelled 1808 of 3581 neutral and 137 positive.",
+    "intent_urgency": "Not shown: these come from keyword rules with no reference labels to check them against."
+  }
+}

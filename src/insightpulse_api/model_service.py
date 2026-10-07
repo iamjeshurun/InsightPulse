@@ -117,7 +117,10 @@ class ModelService:
         for task, model in self._task_models.items():
             for index, prediction in enumerate(model.predict(texts)):
                 if task in prediction:
-                    results[index][task] = {**prediction[task], "method": "model"}
+                    value = {**prediction[task], "method": "model"}
+                    if hasattr(model, "top_terms"):
+                        value["terms"] = [list(t) for t in model.top_terms(texts[index], task, value["label"])]
+                    results[index][task] = value
         return results
 
     def predict_with_shadow(self, texts: list[str]) -> tuple[list[dict], list[dict] | None]:

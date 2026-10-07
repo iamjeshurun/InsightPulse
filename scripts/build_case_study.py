@@ -177,6 +177,7 @@ def main() -> None:
         by_product.setdefault(row["product"], []).append(label == predicted)
     products = {name: {"n": len(v), "accuracy": round(sum(v) / len(v), 3)} for name, v in sorted(by_product.items(), key=lambda kv: -len(kv[1]))}
 
+    full_text = {row["complaint_id"]: text for row, text in zip(rows, texts)}
     records = [
         {
             "id": row["complaint_id"],
@@ -205,6 +206,13 @@ def main() -> None:
         if len(disagreements) == 6:
             break
 
+    def with_terms(record: dict) -> dict:
+        terms = aspect_model.top_terms(full_text[record["id"]], "aspect", record["model_label"])
+        return {**record, "terms": [[term, score] for term, score in terms]}
+
+    evidence = {name: [with_terms(r) for r in items] for name, items in evidence.items()}
+    disagreements = [with_terms(r) for r in disagreements]
+
     test_public, case_public = public(test_result), public(case_result)
     example = {
         "kind": "example",
@@ -225,6 +233,8 @@ def main() -> None:
         "evaluation_type": "case study, not a held-out test",
         "reference_labels": "CFPB categories derived from the issue each consumer selected. Useful reference labels, not infallible ground truth.",
         "results": {"2019_test": test_public, "2024_case": case_public, "class_mix_expected_accuracy": round(mix_expected, 3), "label_rules_unchanged": rule_agreement == 1.0},
+        # Held-out 2019 transformer comparison, from docs/benchmark-results.md.
+        "transformers_2019": {"best_macro_f1": 0.564, "models_tried": 3, "source": "docs/benchmark-results.md"},
         "products": products,
         "review": tradeoff,
         "evidence": evidence,
@@ -316,7 +326,7 @@ every class equally, falls from {t19['macro_f1']:.3f} to {c24['macro_f1']:.3f}.
 
 ### Confusion matrix, 2024 (rows: CFPB label, columns: model)
 
-{table(['CFPB \\\\ model'] + classes, confusion)}
+{table(['CFPB label / model'] + classes, confusion)}
 
 ### Accuracy by product, 2024
 
