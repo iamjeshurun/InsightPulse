@@ -25,6 +25,9 @@ class TaskPrediction(BaseModel):
     confidence: float = Field(ge=0, le=1)
     probabilities: dict[str, float]
     method: Literal["model", "lexicon"] = "model"
+    # Words that pushed the text toward this label, with their contribution
+    # (model-backed tasks only).
+    terms: list[tuple[str, float]] = []
 
 
 class AnalysisResponse(BaseModel):

@@ -59,7 +59,7 @@ every class equally, falls from 0.642 to 0.556.
 
 ### Confusion matrix, 2024 (rows: CFPB label, columns: model)
 
-| CFPB \\ model | account_access | credit_reporting | debt_collection | fees_interest | fraud_security | loan_servicing | other | payments |
+| CFPB label / model | account_access | credit_reporting | debt_collection | fees_interest | fraud_security | loan_servicing | other | payments |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | account_access | 102 | 6 | 3 | 10 | 17 | 1 | 25 | 14 |
 | credit_reporting | 10 | 2065 | 99 | 6 | 64 | 18 | 10 | 21 |

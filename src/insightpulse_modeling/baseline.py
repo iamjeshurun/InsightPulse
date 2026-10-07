@@ -11,6 +11,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
+_FUNCTION_WORDS = frozenset(
+    "a an and are as at be been by for from had has have i in is it me my not of on or "
+    "our that the their them they this to was we were with you your".split()
+)
+
 DEFAULT_TASKS = ("sentiment", "intent", "urgency")
 SUPPORTED_TASKS = (*DEFAULT_TASKS, "aspect")
 
@@ -94,6 +99,44 @@ class BaselineSuite:
                     "probabilities": {str(label): float(score) for label, score in zip(classes, row)},
                 }
         return results
+
+    def top_terms(self, text: str, task: str, label: str, limit: int = 4) -> list[tuple[str, float]]:
+        """Terms that pushed `text` toward `label`: TF-IDF value times the class
+        weight, which for a linear model is each term's exact contribution.
+        Redaction masks (XXXX) are skipped."""
+        model = self.models.get(task)
+        if model is None:
+            return []
+        features = model.named_steps["features"]
+        classifier = model.named_steps["classifier"]
+        classes = list(classifier.classes_)
+        if label not in classes:
+            return []
+        if len(classes) > 2:
+            weights = classifier.coef_[classes.index(label)]
+        else:
+            weights = classifier.coef_[0] * (1 if classes.index(label) == 1 else -1)
+        row = features.transform([text]).tocoo()
+        names = features.get_feature_names_out()
+        scored = sorted(
+            ((str(names[column]), float(value * weights[column])) for column, value in zip(row.col, row.data)),
+            key=lambda item: -item[1],
+        )
+        terms: list[tuple[str, float]] = []
+        for term, score in scored:
+            if score <= 0.05 or len(terms) == limit:
+                break
+            tokens = term.split()
+            # Skip function-word bigrams ("on my") and terms already covered.
+            if tokens[-1] in _FUNCTION_WORDS or all(token in _FUNCTION_WORDS for token in tokens):
+                continue
+            if any(term in kept or kept in term for kept, _ in terms):
+                continue
+            # CFPB masks personal details as XXXX; the mask is not readable evidence.
+            if all(set(token) == {"x"} for token in tokens):
+                continue
+            terms.append((term, round(score, 2)))
+        return terms
 
     def benchmark(self, texts: list[str], repeats: int = 5) -> dict[str, float]:
         if not texts:
