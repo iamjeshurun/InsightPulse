@@ -1,21 +1,19 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 import { Highlighted } from '../Highlighted.jsx'
-import { ASPECT_NAMES, decimal, label } from '../format.js'
+import { ASPECT_NAMES, decimal, label, themeModel } from '../format.js'
 
 const REVIEW_THRESHOLD = 0.4
 
-const MODEL_NAMES = { tfidf_logistic_regression: 'TF-IDF + logistic regression', lexicon: 'keyword rules' }
-
-// "sentiment:…+aspect:tfidf_logistic_regression" -> "TF-IDF + logistic regression"
-function themeModel(version) {
-  const part = version.split('+').find((item) => item.startsWith('aspect:'))
-  const name = part ? part.slice('aspect:'.length) : version
-  return MODEL_NAMES[name] || name.replaceAll('_', ' ')
-}
-
 function timeLabel(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+  return new Date(iso).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZoneName: 'short',
+  })
 }
 
 function Correction({ analysis }) {
@@ -63,6 +61,7 @@ function Correction({ analysis }) {
 
 function LiveResult({ analysis }) {
   const aspect = analysis.predictions.aspect
+  const model = themeModel(analysis.model_version)
   const fromModel = aspect?.method === 'model'
   const needsReview = fromModel && aspect.confidence < REVIEW_THRESHOLD
   const others = ['sentiment', 'intent', 'urgency'].filter((task) => analysis.predictions[task])
@@ -71,7 +70,8 @@ function LiveResult({ analysis }) {
       <div className="live-result-head">
         <span className="tag-live">Live</span>
         <span className="quiet small num">
-          {timeLabel(analysis.created_at)}, theme model: {themeModel(analysis.model_version)}
+          {timeLabel(analysis.created_at)}. Theme model: {model.name}
+          {model.fingerprint && <>, file {model.fingerprint}</>}.
         </span>
       </div>
       <div className="live-theme">

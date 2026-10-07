@@ -26,3 +26,12 @@ test('redaction marks read as one placeholder', async () => {
   assert.equal(hasRedactionTag('Called their [CUSTOMER_ID] today'), true)
   assert.equal(hasRedactionTag('No tags here'), false)
 })
+
+test('reads the theme model name and file fingerprint from the API version', async () => {
+  const { themeModel } = await import('./format.js')
+  assert.deepEqual(themeModel('sentiment:x@1+aspect:tfidf_logistic_regression@5e69ec15'), {
+    name: 'TF-IDF + logistic regression',
+    fingerprint: '5e69ec15',
+  })
+  assert.deepEqual(themeModel('demo-lexicon-2'), { name: 'demo-lexicon-2', fingerprint: '' })
+})
