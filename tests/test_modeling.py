@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from insightpulse_modeling.baseline import BaselineConfig, BaselineSuite
-from insightpulse_modeling.io import write_jsonl
+from insightpulse_data.io import write_jsonl
 from insightpulse_modeling.runner import train_and_evaluate
 
 

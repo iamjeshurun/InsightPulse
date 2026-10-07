@@ -17,7 +17,7 @@ import sklearn
 
 from .baseline import SUPPORTED_TASKS
 from .evaluation import evaluate_task
-from .io import read_jsonl
+from insightpulse_data.io import read_jsonl
 
 
 def _labeled(records: list[dict[str, Any]], task: str) -> list[dict[str, str]]:

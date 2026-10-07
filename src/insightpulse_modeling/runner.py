@@ -13,7 +13,7 @@ import sklearn
 
 from .baseline import BaselineConfig, BaselineSuite
 from .evaluation import evaluate_task
-from .io import read_jsonl, write_json, write_jsonl
+from insightpulse_data.io import read_jsonl, write_json, write_jsonl
 
 
 def _model_card(report: dict[str, Any]) -> str:

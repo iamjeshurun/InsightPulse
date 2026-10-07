@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import random
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
+from .io import sha256_file, text_fingerprint, write_jsonl
 from .models import FeedbackRecord, parse_record
 from .privacy import redact_pii
 
@@ -44,21 +44,6 @@ def load_records(path: Path) -> list[dict[str, Any]]:
         with path.open(encoding="utf-8") as handle:
             return [json.loads(line) for line in handle if line.strip()]
     raise ValueError("input must be a .csv or .jsonl file")
-
-
-def _fingerprint(text: str) -> str:
-    canonical = " ".join(text.lower().split())
-    return hashlib.sha256(canonical.encode()).hexdigest()
-
-
-def _write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record, sort_keys=True) + "\n")
-
-
-def _checksum(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _split(records: list[dict[str, Any]], config: PipelineConfig) -> dict[str, list[dict[str, Any]]]:
@@ -135,7 +120,7 @@ def run_pipeline(input_path: Path, output_dir: Path, config: PipelineConfig) -> 
             continue
         assert isinstance(parsed, FeedbackRecord)
         redacted_text, record_redactions = redact_pii(parsed.text)
-        fingerprint = _fingerprint(redacted_text)
+        fingerprint = text_fingerprint(redacted_text)
         if parsed.id in seen_ids or fingerprint in seen_text:
             duplicates += 1
             continue
@@ -168,10 +153,10 @@ def run_pipeline(input_path: Path, output_dir: Path, config: PipelineConfig) -> 
     output_files: list[Path] = []
     for split_name, rows in splits.items():
         split_path = output_dir / f"{split_name}.jsonl"
-        _write_jsonl(split_path, rows)
+        write_jsonl(split_path, rows)
         output_files.append(split_path)
     quarantine_path = output_dir / "quarantine.jsonl"
-    _write_jsonl(quarantine_path, quarantined)
+    write_jsonl(quarantine_path, quarantined)
     output_files.append(quarantine_path)
     report_path = output_dir / "quality_report.json"
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -183,8 +168,8 @@ def run_pipeline(input_path: Path, output_dir: Path, config: PipelineConfig) -> 
         "dataset": report["dataset"],
         "created_at": datetime.now(UTC).isoformat(),
         "seed": config.seed,
-        "source_sha256": _checksum(input_path),
-        "files": {path.name: _checksum(path) for path in output_files},
+        "source_sha256": sha256_file(input_path),
+        "files": {path.name: sha256_file(path) for path in output_files},
     }
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
