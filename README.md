@@ -6,8 +6,8 @@ narratives — and turns it into structured, reviewable signal that a product or
 support team can act on. It is built as a portfolio project to show the full
 applied-ML lifecycle, from a reproducible dataset to a monitored service.
 
-**Live demo:** https://insightpulse-xlc2.onrender.com  ·  API docs at `/docs`  ·  metrics at `/metrics`
-_(free tier — the first request after ~15 min idle takes a few seconds to wake, and the analytics history resets on redeploy)_
+**Live demo:** https://iamjeshurun.github.io/InsightPulse/ (loads instantly with a precomputed example; the live model wakes in the background)
+**API:** https://insightpulse-xlc2.onrender.com/docs. It runs on Render's free tier, so the first request after about 15 idle minutes takes up to a minute while it wakes, and stored analyses reset on redeploy.
 
 ## Project evolution
 
