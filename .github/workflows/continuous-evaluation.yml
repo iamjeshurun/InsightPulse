@@ -9,15 +9,15 @@ jobs:
   evaluate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: {python-version: "3.12", cache: pip}
       - run: pip install -e .
       - name: Verify drift evaluation pipeline
         run: |
           insightpulse-data --input data/sample_feedback.csv --output-dir artifacts/processed --dataset-name ci-smoke --dataset-version 1.0.0 --train-ratio 0.6 --validation-ratio 0.2
           insightpulse-drift --reference artifacts/processed/train.jsonl --current artifacts/processed/test.jsonl --output artifacts/reports/drift.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: drift-smoke-report
           path: artifacts/reports/drift.json
