@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import logging
 import os
 import threading
 import uuid
@@ -27,11 +25,7 @@ from .schemas import (
 from insightpulse_monitoring.metrics import MetricsRegistry
 
 API_VERSION = "1.0.0"
-
-
-class JsonFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        return json.dumps({"timestamp": datetime.now(UTC).isoformat(), "level": record.levelname, "message": record.getMessage()})
+MAX_TRACKED_CLIENTS = 10_000
 
 
 def create_app(database_path: Path | None = None, model_path: Path | None = None) -> FastAPI:
@@ -59,6 +53,9 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         now = monotonic()
         if rate_limit > 0:
             with rate_lock:
+                if len(request_windows) > MAX_TRACKED_CLIENTS:
+                    for idle in [ip for ip, w in request_windows.items() if not w or now - w[-1] > 60]:
+                        del request_windows[idle]
                 window = request_windows[client]
                 while window and now - window[0] > 60:
                     window.popleft()
@@ -67,7 +64,10 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
                 window.append(now)
         started = monotonic()
         response = await call_next(request)
-        metrics.observe_request(request.method, request.url.path, response.status_code, monotonic() - started)
+        # Label by route template (/api/v1/jobs/{job_id}), not the concrete path,
+        # so per-ID requests do not create unbounded metric series.
+        route = getattr(request.scope.get("route"), "path", "other")
+        metrics.observe_request(request.method, route, response.status_code, monotonic() - started)
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = f"{(monotonic() - started) * 1000:.2f}"
         return response

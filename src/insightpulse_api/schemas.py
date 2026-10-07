@@ -24,6 +24,7 @@ class TaskPrediction(BaseModel):
     label: str
     confidence: float = Field(ge=0, le=1)
     probabilities: dict[str, float]
+    method: Literal["model", "lexicon"] = "model"
 
 
 class AnalysisResponse(BaseModel):

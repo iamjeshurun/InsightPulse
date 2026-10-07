@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-import threading
 import uuid
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -16,7 +15,6 @@ class Repository:
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.RLock()
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
@@ -65,7 +63,7 @@ class Repository:
         return value
 
     def save_analysis(self, record: dict[str, Any]) -> dict[str, Any]:
-        with self._lock, self._connection() as connection:
+        with self._connection() as connection:
             connection.execute(
                 "INSERT INTO analyses VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -136,8 +134,9 @@ class Repository:
                     continue
                 label = prediction["label"]
                 result[task][label] = result[task].get(label, 0) + 1
-                confidences.append(float(prediction["confidence"]))
-            scores = [float(value["confidence"]) for value in row["predictions"].values()]
+            # Rule-based (lexicon) scores are fixed heuristics, not model confidence.
+            scores = [float(p["confidence"]) for p in row["predictions"].values() if p.get("method") != "lexicon"]
+            confidences.extend(scores)
             if scores and min(scores) < 0.65:
                 result["low_confidence"] += 1
         result["average_confidence"] = sum(confidences) / len(confidences) if confidences else 0.0

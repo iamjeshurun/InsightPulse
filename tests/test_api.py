@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 from unittest.mock import patch
 
@@ -53,6 +54,20 @@ class ApiTests(unittest.TestCase):
         current = self.client.get(f"/api/v1/jobs/{job['id']}").json()
         self.assertEqual(current["status"], "completed")
         self.assertEqual(current["completed"], 2)
+
+    def test_metrics_label_routes_by_template_not_id(self):
+        for _ in range(3):
+            self.client.get(f"/api/v1/analyses/{uuid.uuid4()}")
+        metrics = self.client.get("/metrics").text
+        self.assertIn('route="/api/v1/analyses/{analysis_id}",status="404"} 3', metrics)
+        self.assertNotRegex(metrics, r"/api/v1/analyses/[0-9a-f]{8}-")
+
+    def test_lexicon_scores_are_marked_and_excluded_from_confidence(self):
+        analysis = self.client.post("/api/v1/analyze", json={"text": "The app is broken and slow."}).json()
+        self.assertEqual({p["method"] for p in analysis["predictions"].values()}, {"lexicon"})
+        summary = self.client.get("/api/v1/analytics/summary").json()
+        self.assertEqual(summary["average_confidence"], 0.0)
+        self.assertEqual(summary["low_confidence"], 0)
 
     def test_rate_limit_is_configurable(self):
         with patch.dict("os.environ", {"INSIGHTPULSE_RATE_LIMIT_PER_MINUTE": "3"}):

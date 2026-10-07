@@ -6,7 +6,8 @@ const EMPTY_SUMMARY = { total: 0, average_confidence: 0, sentiment: {}, intent: 
 const pretty = (value) => (value || '—').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 const labelOf = (analysis, task) => analysis?.predictions?.[task]?.label || ''
 const confidence = (analysis) => {
-  const scores = Object.values(analysis?.predictions || {}).map((item) => item.confidence)
+  // Rule-based (lexicon) tasks have fixed scores, so only model outputs count.
+  const scores = Object.values(analysis?.predictions || {}).filter((item) => item.method !== 'lexicon').map((item) => item.confidence)
   return scores.length ? Math.min(...scores) : 1
 }
 
@@ -94,7 +95,7 @@ export default function App() {
     <aside><a className="brand" href="#top"><span>IP</span><div>InsightPulse<small>Customer intelligence</small></div></a><nav><a className="active" href="#overview">Overview</a><a href="#analyze">Analyze</a><a href="#feedback">Feedback</a><a href="#review">Review queue <b>{lowConfidence.length}</b></a></nav><div className="sidebar-status"><i className={health ? 'online' : ''} /><div><strong>{health ? 'System operational' : 'API unavailable'}</strong><small>{health?.model_version || 'Waiting for service'}</small></div></div></aside>
     <main id="top"><header><div><span className="eyebrow">Voice of customer</span><h1>Signals worth acting on.</h1><p>See what customers feel, need, and may do next.</p></div><button className="secondary" onClick={exportCsv} disabled={!analyses.length}>Export CSV</button></header>
       {error && <div className="error-banner">Could not reach the API: {error}</div>}
-      <section id="overview" className="stats"><StatCard label="Feedback analyzed" value={summary.total.toLocaleString()} detail="Across all connected sources" tone="violet" /><StatCard label="Negative sentiment" value={`${negativeRate}%`} detail={`${summary.sentiment.negative || 0} records need attention`} tone="coral" /><StatCard label="Model confidence" value={`${Math.round(summary.average_confidence * 100)}%`} detail="Mean across three tasks" tone="mint" /><StatCard label="Review queue" value={summary.low_confidence} detail="Below 65% confidence" tone="gold" /></section>
+      <section id="overview" className="stats"><StatCard label="Feedback analyzed" value={summary.total.toLocaleString()} detail="Across all connected sources" tone="violet" /><StatCard label="Negative sentiment" value={`${negativeRate}%`} detail={`${summary.sentiment.negative || 0} records need attention`} tone="coral" /><StatCard label="Model confidence" value={`${Math.round(summary.average_confidence * 100)}%`} detail="Mean across model-scored tasks" tone="mint" /><StatCard label="Review queue" value={summary.low_confidence} detail="Below 65% confidence" tone="gold" /></section>
       <section className="grid-two"><Distribution title="Customer sentiment" values={summary.sentiment} colors={['#ff6b57', '#725cff', '#38b98b']} /><Distribution title="Customer aspects" values={summary.aspect} colors={['#725cff', '#4d8df7', '#f3a83b', '#38b98b']} /></section>
       <section id="analyze" className="grid-action"><AnalyzeForm onComplete={refresh} /><CsvUpload onComplete={refresh} /></section>
       <div id="feedback"><ReviewTable analyses={analyses} onFeedback={setReviewing} /></div>
