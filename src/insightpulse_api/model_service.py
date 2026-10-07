@@ -7,6 +7,7 @@ back to a transparent rule-based lexicon otherwise, so a partial deployment
 
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 from typing import Any
@@ -42,25 +43,34 @@ LABELS: dict[str, list[str]] = {
 
 
 def _load(raw: str | Path | None) -> Any | None:
+    loaded, _ = _load_versioned(raw)
+    return loaded
+
+
+def _load_versioned(raw: str | Path | None) -> tuple[Any | None, str]:
+    """The model and the first 8 hex digits of its file's SHA-256, which pins
+    exactly which trained artifact served a prediction."""
     if not raw:
-        return None
+        return None, ""
     path = Path(raw)
-    return joblib.load(path) if path.exists() else None
+    if not path.exists():
+        return None, ""
+    return joblib.load(path), hashlib.sha256(path.read_bytes()).hexdigest()[:8]
 
 
 class ModelService:
     def __init__(self, model_path: Path | None = None) -> None:
-        primary = _load(model_path or os.getenv("INSIGHTPULSE_MODEL_PATH"))
+        primary, primary_digest = _load_versioned(model_path or os.getenv("INSIGHTPULSE_MODEL_PATH"))
         primary_tasks = set(getattr(getattr(primary, "config", None), "tasks", ()) or ())
 
         self._task_models: dict[str, Any] = {}
         stamps: dict[str, str] = {}
         for task in TASKS:
-            override = _load(os.getenv(f"INSIGHTPULSE_{task.upper()}_MODEL_PATH"))
+            override, digest = _load_versioned(os.getenv(f"INSIGHTPULSE_{task.upper()}_MODEL_PATH"))
             if override is not None:
-                self._task_models[task], stamps[task] = override, _stamp(override)
+                self._task_models[task], stamps[task] = override, f"{_stamp(override)}@{digest}"
             elif primary is not None and task in primary_tasks:
-                self._task_models[task], stamps[task] = primary, _stamp(primary)
+                self._task_models[task], stamps[task] = primary, f"{_stamp(primary)}@{primary_digest}"
 
         if self._task_models:
             self.version = "+".join(f"{task}:{stamps.get(task, 'lexicon')}" for task in TASKS)

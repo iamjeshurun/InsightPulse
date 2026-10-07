@@ -1,3 +1,4 @@
+import hashlib
 import os
 import tempfile
 import unittest
@@ -37,7 +38,8 @@ class ModelServiceTests(unittest.TestCase):
             joblib.dump(_sentiment_suite(), model_file)
             with patch.dict(os.environ, {**_MODEL_ENV, "INSIGHTPULSE_SENTIMENT_MODEL_PATH": str(model_file)}):
                 service = ModelService()
-            self.assertIn("sentiment:tfidf_logistic_regression", service.version)
+            digest = hashlib.sha256(model_file.read_bytes()).hexdigest()[:8]
+            self.assertIn(f"sentiment:tfidf_logistic_regression@{digest}", service.version)
             self.assertIn("urgency:lexicon", service.version)
             prediction = service.predict(["excellent product number 999"])[0]
             self.assertEqual(prediction["sentiment"]["label"], "positive")
