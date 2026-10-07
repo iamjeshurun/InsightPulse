@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+# Aspect confidence below this goes to human review. Chosen on the 2019
+# validation split by maximising errors caught minus records flagged (0.40 flags
+# ~36% of the 2019 test set and catches ~63% of its errors); see
+# docs/case-study-2024.md. Sentiment confidence is not used: it was never
+# validated for this purpose.
+REVIEW_THRESHOLD = float(os.getenv("INSIGHTPULSE_REVIEW_THRESHOLD", "0.40"))
 
 
 class Repository:
@@ -137,7 +145,8 @@ class Repository:
             # Rule-based (lexicon) scores are fixed heuristics, not model confidence.
             scores = [float(p["confidence"]) for p in row["predictions"].values() if p.get("method") != "lexicon"]
             confidences.extend(scores)
-            if scores and min(scores) < 0.65:
+            aspect = row["predictions"].get("aspect") or {}
+            if aspect and aspect.get("method") != "lexicon" and float(aspect["confidence"]) < REVIEW_THRESHOLD:
                 result["low_confidence"] += 1
         result["average_confidence"] = sum(confidences) / len(confidences) if confidences else 0.0
         return result

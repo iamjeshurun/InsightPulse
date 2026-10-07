@@ -69,6 +69,24 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(summary["average_confidence"], 0.0)
         self.assertEqual(summary["low_confidence"], 0)
 
+    def test_review_queue_uses_validated_aspect_threshold(self):
+        repository = self.client.app.state.repository
+
+        def save(aspect_confidence, method="model", sentiment_confidence=0.2):
+            repository.save_analysis({
+                "id": str(uuid.uuid4()), "text": "example", "source": "review", "product": "Test",
+                "created_at": "2026-10-07T00:00:00+00:00", "model_version": "test",
+                "predictions": {
+                    "aspect": {"label": "payments", "confidence": aspect_confidence, "probabilities": {}, "method": method},
+                    "sentiment": {"label": "negative", "confidence": sentiment_confidence, "probabilities": {}, "method": "model"},
+                },
+            })
+
+        save(0.35)                    # below 0.40: flagged
+        save(0.55)                    # above: not flagged, even though sentiment confidence is low
+        save(0.10, method="lexicon")  # rule-based scores are never flagged
+        self.assertEqual(self.client.get("/api/v1/analytics/summary").json()["low_confidence"], 1)
+
     def test_rate_limit_is_configurable(self):
         with patch.dict("os.environ", {"INSIGHTPULSE_RATE_LIMIT_PER_MINUTE": "3"}):
             with TestClient(create_app(Path(self.temporary.name) / "rl.db")) as client:
