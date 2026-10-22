@@ -59,7 +59,6 @@ at `/` while API routes remain under `/api/v1`.
 ## Limitations
 
 The page is unauthenticated. Submitted text and corrections are stored, but the
-public deployment does not list them back through the API
-(`INSIGHTPULSE_PUBLIC_RECORDS=false`), and Render's ephemeral disk erases them
+API does not list them back unless `INSIGHTPULSE_PUBLIC_RECORDS=true`, and Render's ephemeral disk erases them
 on every redeploy. A shared deployment would need accounts and per-user access
 before stored analyses could be shown to anyone.

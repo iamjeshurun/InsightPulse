@@ -18,7 +18,4 @@ services:
       # cross-origin API clients; allow_credentials is off in the app.
       - key: INSIGHTPULSE_CORS_ORIGINS
         value: "*"
-      # Visitors' submitted text is stored but not listed back through the API.
-      - key: INSIGHTPULSE_PUBLIC_RECORDS
-        value: "false"
       # Model paths default to the bundled classical baselines (see Dockerfile).

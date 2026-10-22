@@ -36,12 +36,13 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
     request_windows: dict[str, deque[float]] = defaultdict(deque)
     rate_lock = threading.Lock()
     rate_limit = int(os.getenv("INSIGHTPULSE_RATE_LIMIT_PER_MINUTE", "120"))  # 0 disables
-    # Render's proxy appends to X-Forwarded-For but keeps whatever the client sent,
-    # so only the entries our own proxies added can be trusted. Counting from the
-    # right, entry number `proxy_hops` is the address the outermost proxy saw.
-    proxy_hops = int(os.getenv("INSIGHTPULSE_TRUSTED_PROXY_HOPS", "0"))
-    # Stored analyses hold whatever visitors typed; the public demo keeps them unlisted.
-    public_records = os.getenv("INSIGHTPULSE_PUBLIC_RECORDS", "true").lower() != "false"
+    # Render's proxies append to X-Forwarded-For but keep whatever the client sent,
+    # so only the entries they added can be trusted. Counting from the right, entry
+    # number `proxy_hops` is the visitor's address. Render adds three (measured
+    # 2026-10-22) and sets RENDER=true in every service.
+    proxy_hops = int(os.getenv("INSIGHTPULSE_TRUSTED_PROXY_HOPS", "3" if os.getenv("RENDER") else "0"))
+    # Stored analyses hold whatever visitors typed, so they are not listed unless enabled.
+    public_records = os.getenv("INSIGHTPULSE_PUBLIC_RECORDS", "false").lower() == "true"
     app = FastAPI(title="InsightPulse API", version=API_VERSION, docs_url="/docs")
     app.state.repository, app.state.model = repository, model
     app.add_middleware(
@@ -82,8 +83,6 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         route = getattr(request.scope.get("route"), "path", "other")
         metrics.observe_request(request.method, route, response.status_code, monotonic() - started)
         response.headers["X-Request-ID"] = request_id
-        # Temporary: how many X-Forwarded-For entries arrive, to set INSIGHTPULSE_TRUSTED_PROXY_HOPS.
-        response.headers["X-Forwarded-Hops"] = str(len([p for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]))
         response.headers["X-Process-Time-Ms"] = f"{(monotonic() - started) * 1000:.2f}"
         return response
 

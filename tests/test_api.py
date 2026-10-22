@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 import uuid
@@ -12,7 +13,8 @@ from insightpulse_api.app import create_app
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
-        self.client = TestClient(create_app(Path(self.temporary.name) / "test.db"))
+        with patch.dict("os.environ", {"INSIGHTPULSE_PUBLIC_RECORDS": "true"}):
+            self.client = TestClient(create_app(Path(self.temporary.name) / "test.db"))
 
     def tearDown(self):
         self.client.close()
@@ -107,6 +109,16 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(codes, [200, 200, 200, 429, 429])
         self.assertEqual(other_visitor, 200)
 
+    def test_render_deployments_trust_its_three_proxies(self):
+        with patch.dict("os.environ", {"RENDER": "true", "INSIGHTPULSE_RATE_LIMIT_PER_MINUTE": "2"}):
+            with TestClient(create_app(Path(self.temporary.name) / "render.db")) as client:
+                proxies = "10.0.0.1, 10.0.0.2"
+                codes = [
+                    client.get("/health", headers={"X-Forwarded-For": f"6.6.6.{n}, 198.51.100.7, {proxies}"}).status_code
+                    for n in range(3)
+                ]
+        self.assertEqual(codes, [200, 200, 429])
+
     def test_failed_job_reports_the_records_it_saved(self):
         model = self.client.app.state.model
         original = model.predict_with_shadow
@@ -125,8 +137,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual((current["status"], current["completed"]), ("failed", 1))
         self.assertIn("model crashed", current["error"])
 
-    def test_stored_analyses_can_be_kept_unlisted(self):
-        with patch.dict("os.environ", {"INSIGHTPULSE_PUBLIC_RECORDS": "false"}):
+    def test_stored_analyses_are_unlisted_by_default(self):
+        with patch.dict("os.environ"):
+            os.environ.pop("INSIGHTPULSE_PUBLIC_RECORDS", None)
             with TestClient(create_app(Path(self.temporary.name) / "private.db")) as client:
                 analysis = client.post("/api/v1/analyze", json={"text": "My account number is on the statement."}).json()
                 self.assertEqual(client.get("/api/v1/analyses").status_code, 404)
