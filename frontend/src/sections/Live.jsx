@@ -173,6 +173,10 @@ export function Live({ status }) {
           Live results run on the hosted model and appear here with the model version and time. The example above never
           changes.
         </p>
+        <p className="small quiet">
+          What you submit is stored on the demo server so corrections can be checked later. Other visitors cannot browse
+          it, and it is erased on every redeploy. Leave out names and account details.
+        </p>
       </div>
       <div>
         <form className="panel live-form" onSubmit={submit} aria-label="Analyze text">

@@ -141,9 +141,4 @@ class ModelService:
 
 def _stamp(model: Any) -> str:
     metadata = getattr(model, "metadata", None)
-    if callable(metadata):
-        try:
-            return str(metadata().get("model_family", "trained"))
-        except Exception:  # pragma: no cover - defensive
-            return "trained"
-    return "trained"
+    return str(metadata().get("model_family", "trained")) if callable(metadata) else "trained"

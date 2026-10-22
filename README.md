@@ -7,7 +7,7 @@ support team can act on. It is built as a portfolio project to show the full
 applied-ML lifecycle, from a reproducible dataset to a monitored service.
 
 **Live demo:** https://iamjeshurun.github.io/InsightPulse/ (loads instantly with a precomputed example; the live model wakes in the background)
-**API:** https://insightpulse-xlc2.onrender.com/docs. It runs on Render's free tier, so the first request after about 15 idle minutes takes up to a minute while it wakes, and stored analyses reset on redeploy.
+**API:** https://insightpulse-xlc2.onrender.com/docs. It runs on Render's free tier, so the first request after about 15 idle minutes takes up to a minute while it wakes, and stored analyses reset on redeploy. Submitted text is stored but not listed back through the API.
 
 ## Project evolution
 
@@ -53,9 +53,9 @@ feedback ──▶ │ data pipeline│ ──▶ │ benchmarks (JSONL splits) 
                                                  │               · calibration
                     ┌────────────────────────────▼──┐            · error slices
    React dashboard ▶│ FastAPI  /api/v1              │            · latency
-   · KPIs & charts  │  analyze · batch · jobs       │
-   · evidence table │  analytics · feedback         │──▶ SQLite (analyses,
-   · review queue   │  /health /ready /metrics      │        jobs, corrections)
+   · worked example │  analyze · batch · jobs       │
+   · term evidence  │  analytics · feedback         │──▶ SQLite (analyses,
+   · live analysis  │  /health /ready /metrics      │        jobs, corrections)
    · corrections    └───────────────┬───────────────┘
                                     │
               Prometheus ◀── /metrics ──▶ drift & continuous-eval jobs
@@ -70,7 +70,7 @@ Five layers, each independently runnable, connected by stable contracts:
 | 1 · Data | schema validation, PII redaction, dedupe, deterministic splits, dataset cards | [part 1](docs/part-1-data-foundation.md) |
 | 2 · Modeling | classical baseline + optional transformer, one evaluation contract | [part 2](docs/part-2-modeling.md) · [datasets](docs/datasets.md) |
 | 3 · API | versioned FastAPI: real-time & batch inference, jobs, analytics, feedback | [part 3](docs/part-3-inference-platform.md) |
-| 4 · Dashboard | React decision surface: KPIs, distributions, evidence, review queue | [part 4](docs/part-4-dashboard.md) |
+| 4 · Dashboard | React page: a worked example with term evidence, model disagreements, live analysis with corrections | [part 4](docs/part-4-dashboard.md) |
 | 5 · Operations | Docker, CI, Prometheus/Grafana, drift, continuous evaluation, runbook | [part 5](docs/part-5-operations.md) · [architecture](docs/architecture.md) |
 
 ## Measured results
@@ -110,7 +110,7 @@ then [docs/benchmark-results.md](docs/benchmark-results.md).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[test]'
-python -m unittest discover -s tests -v          # 30 backend tests
+python -m unittest discover -s tests -v          # backend tests
 
 # API + dashboard — serves the bundled sentiment + aspect models;
 # intent + urgency fall back to a transparent lexicon (GET /health shows which)

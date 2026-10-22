@@ -33,7 +33,8 @@ pretending the rule-based fallback is a trained model.
 - `POST /api/v1/analyze`
 - `POST /api/v1/analyze/batch`
 - `POST /api/v1/jobs` and `GET /api/v1/jobs/{id}`
-- `GET /api/v1/analyses` and `GET /api/v1/analyses/{id}`
+- `GET /api/v1/analyses` and `GET /api/v1/analyses/{id}` (return 404 when
+  `INSIGHTPULSE_PUBLIC_RECORDS=false`, as on the public demo)
 - `GET /api/v1/analytics/summary`
 - `POST /api/v1/feedback`
 - `GET /health`

@@ -36,6 +36,12 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
     request_windows: dict[str, deque[float]] = defaultdict(deque)
     rate_lock = threading.Lock()
     rate_limit = int(os.getenv("INSIGHTPULSE_RATE_LIMIT_PER_MINUTE", "120"))  # 0 disables
+    # Render's proxy appends to X-Forwarded-For but keeps whatever the client sent,
+    # so only the entries our own proxies added can be trusted. Counting from the
+    # right, entry number `proxy_hops` is the address the outermost proxy saw.
+    proxy_hops = int(os.getenv("INSIGHTPULSE_TRUSTED_PROXY_HOPS", "0"))
+    # Stored analyses hold whatever visitors typed; the public demo keeps them unlisted.
+    public_records = os.getenv("INSIGHTPULSE_PUBLIC_RECORDS", "true").lower() != "false"
     app = FastAPI(title="InsightPulse API", version=API_VERSION, docs_url="/docs")
     app.state.repository, app.state.model = repository, model
     app.add_middleware(
@@ -46,10 +52,17 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         allow_headers=["Content-Type", "X-Request-ID"],
     )
 
+    def client_address(request: Request) -> str:
+        if proxy_hops:
+            chain = [part.strip() for part in request.headers.get("x-forwarded-for", "").split(",") if part.strip()]
+            if len(chain) >= proxy_hops:
+                return chain[-proxy_hops]
+        return request.client.host if request.client else "unknown"
+
     @app.middleware("http")
     async def operational_middleware(request: Request, call_next):
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        client = request.client.host if request.client else "unknown"
+        client = client_address(request)
         now = monotonic()
         if rate_limit > 0:
             with rate_lock:
@@ -69,6 +82,8 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         route = getattr(request.scope.get("route"), "path", "other")
         metrics.observe_request(request.method, route, response.status_code, monotonic() - started)
         response.headers["X-Request-ID"] = request_id
+        # Temporary: how many X-Forwarded-For entries arrive, to set INSIGHTPULSE_TRUSTED_PROXY_HOPS.
+        response.headers["X-Forwarded-Hops"] = str(len([p for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]))
         response.headers["X-Process-Time-Ms"] = f"{(monotonic() - started) * 1000:.2f}"
         return response
 
@@ -110,14 +125,18 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
         return {"analyses": [analyze_one(record) for record in payload.records]}
 
     def process_job(job_id: str, records: list[AnalyzeRequest]) -> None:
+        # Jobs run in this process: a restart mid-job leaves it "running" for good.
         repository.update_job(job_id, "running", 0)
+        completed = 0
         try:
-            for completed, record in enumerate(records, start=1):
+            for record in records:
                 analyze_one(record)
+                completed += 1
                 repository.update_job(job_id, "running", completed)
-            repository.update_job(job_id, "completed", len(records))
+            repository.update_job(job_id, "completed", completed)
         except Exception as exc:  # surfaced through job status, logged by deployment
-            repository.update_job(job_id, "failed", 0, str(exc)[:500])
+            # Records analyzed before the failure stay saved, so report them.
+            repository.update_job(job_id, "failed", completed, str(exc)[:500])
 
     @app.post("/api/v1/jobs", response_model=JobResponse, status_code=202, tags=["jobs"])
     def create_job(payload: BatchAnalyzeRequest, background: BackgroundTasks) -> dict:
@@ -134,11 +153,13 @@ def create_app(database_path: Path | None = None, model_path: Path | None = None
 
     @app.get("/api/v1/analyses", response_model=list[AnalysisResponse], tags=["analysis"])
     def list_analyses(limit: int = Query(100, ge=1, le=500), product: str | None = None) -> list[dict]:
+        if not public_records:
+            raise HTTPException(404, "stored analyses are not listed on this deployment")
         return repository.list_analyses(limit, product)
 
     @app.get("/api/v1/analyses/{analysis_id}", response_model=AnalysisResponse, tags=["analysis"])
     def get_analysis(analysis_id: str) -> dict:
-        record = repository.get_analysis(analysis_id)
+        record = repository.get_analysis(analysis_id) if public_records else None
         if not record:
             raise HTTPException(404, "analysis not found")
         return record

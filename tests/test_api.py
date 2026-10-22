@@ -94,6 +94,49 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(codes[:3], [200, 200, 200])
         self.assertEqual(codes[-1], 429)
 
+    def test_rate_limit_ignores_client_supplied_forwarded_addresses(self):
+        env = {"INSIGHTPULSE_RATE_LIMIT_PER_MINUTE": "3", "INSIGHTPULSE_TRUSTED_PROXY_HOPS": "1"}
+        with patch.dict("os.environ", env):
+            with TestClient(create_app(Path(self.temporary.name) / "spoof.db")) as client:
+                # The client controls everything left of the address our proxy appended.
+                codes = [
+                    client.get("/health", headers={"X-Forwarded-For": f"10.9.9.{n}, 198.51.100.7"}).status_code
+                    for n in range(5)
+                ]
+                other_visitor = client.get("/health", headers={"X-Forwarded-For": "203.0.113.8"}).status_code
+        self.assertEqual(codes, [200, 200, 200, 429, 429])
+        self.assertEqual(other_visitor, 200)
+
+    def test_failed_job_reports_the_records_it_saved(self):
+        model = self.client.app.state.model
+        original = model.predict_with_shadow
+        calls = []
+
+        def fail_on_second(texts):
+            calls.append(texts)
+            if len(calls) == 2:
+                raise RuntimeError("model crashed")
+            return original(texts)
+
+        records = {"records": [{"text": "Refund never arrived."}, {"text": "Card was declined."}, {"text": "Thanks!"}]}
+        with patch.object(model, "predict_with_shadow", side_effect=fail_on_second):
+            job = self.client.post("/api/v1/jobs", json=records).json()
+        current = self.client.get(f"/api/v1/jobs/{job['id']}").json()
+        self.assertEqual((current["status"], current["completed"]), ("failed", 1))
+        self.assertIn("model crashed", current["error"])
+
+    def test_stored_analyses_can_be_kept_unlisted(self):
+        with patch.dict("os.environ", {"INSIGHTPULSE_PUBLIC_RECORDS": "false"}):
+            with TestClient(create_app(Path(self.temporary.name) / "private.db")) as client:
+                analysis = client.post("/api/v1/analyze", json={"text": "My account number is on the statement."}).json()
+                self.assertEqual(client.get("/api/v1/analyses").status_code, 404)
+                self.assertEqual(client.get(f"/api/v1/analyses/{analysis['id']}").status_code, 404)
+                feedback = client.post(
+                    "/api/v1/feedback",
+                    json={"analysis_id": analysis["id"], "task": "aspect", "corrected_label": "other"},
+                )
+                self.assertEqual(feedback.status_code, 201)
+
     def test_compiled_dashboard_can_be_served(self):
         frontend = Path(self.temporary.name) / "frontend"
         frontend.mkdir()
